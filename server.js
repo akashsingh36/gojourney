@@ -16,7 +16,6 @@ const JWT_SECRET = process.env.JWT_SECRET || 'gojourney_secret_key_2026';
 const MONGO_URI = process.env.MONGO_URI;
 
 // ===== MIDDLEWARE =====
-const cors = require('cors');
 
 app.use(cors({
   origin: "*",   // allow all (for testing)
