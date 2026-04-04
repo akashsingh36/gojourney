@@ -1,13 +1,11 @@
-// Test if JS is working
 console.log("App.js loaded");
 
-// Make all "Book Now" buttons clickable
-document.addEventListener("DOMContentLoaded", () => {
-  const buttons = document.querySelectorAll("button");
+// Handle Book Now click
+document.addEventListener("click", function(e) {
+  if (e.target.innerText.includes("Book Now")) {
+    alert("Booking started 🚀");
 
-  buttons.forEach(btn => {
-    btn.addEventListener("click", () => {
-      alert("Button is working 🚀");
-    });
-  });
+    // You can later open booking modal here
+    // openBookingModal();
+  }
 });
