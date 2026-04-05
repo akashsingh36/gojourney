@@ -2041,6 +2041,18 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
 
 <script>
 
+// ===== CORE APP STATE (must be defined first) =====
+window.App = {
+  currentUser: null,
+  slideIndex: 0,
+  activeTab: 'hotels',
+  wishlist: [],
+  bookings: [],
+  users: [],
+  currentBooking: null,
+  appliedCoupon: null
+};
+
 function lsGet(key, fallback) {
   try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch(e) { return fallback; }
 }
@@ -2749,7 +2761,7 @@ function switchAuth(mode) {
   }
 }
 
-// ===== LOGIN — checks if account exists first =====
+// ===== LOGIN =====
 function handleLogin() {
   const email = document.getElementById('loginEmail').value.trim();
   const password = document.getElementById('loginPassword').value;
@@ -2759,13 +2771,11 @@ function handleLogin() {
     return;
   }
 
-  // Check if user has a registered account
+  // Check registered users
   const registeredUser = App.users.find(u => u.email.toLowerCase() === email.toLowerCase());
 
   if (!registeredUser) {
-    // No account found — redirect to signup
     showAuthError('login', 'No account found with this email. Please sign up first.');
-    // After a short delay, switch to signup and pre-fill the email
     setTimeout(() => {
       switchAuth('signup');
       const signupEmailEl = document.getElementById('signupEmail');
@@ -2774,8 +2784,15 @@ function handleLogin() {
     return;
   }
 
-  // Account exists — log them in
+  // Validate password if stored, otherwise allow (legacy/social accounts)
+  if (registeredUser.password && registeredUser.password !== password) {
+    showAuthError('login', 'Incorrect password. Please try again.');
+    return;
+  }
+
+  // Success — log in and open dashboard
   loginUser(registeredUser);
+  setTimeout(() => openDashboard(), 400);
 }
 
 // ===== SIGNUP — creates account then logs in =====
@@ -2831,27 +2848,33 @@ function handleSignup() {
       return;
     }
     if (data.token) localStorage.setItem('gj_token', data.token);
-    completeSignup({ name: data.user?.name || firstName + (lastName ? ' ' + lastName : ''), email, phone, role: 'user' });
+    completeSignup({ id: data.user?.id || Date.now(), name: data.user?.name || firstName + (lastName ? ' ' + lastName : ''), email, phone, password, role: 'user', createdAt: new Date().toISOString() });
   })
   .catch(() => {
     // Backend unavailable — register locally
-    completeSignup({ id: Date.now(), name: firstName + (lastName ? ' ' + lastName : ''), email, phone, role: 'user' });
+    completeSignup({ id: Date.now(), name: firstName + (lastName ? ' ' + lastName : ''), email, phone, password, role: 'user', createdAt: new Date().toISOString() });
   });
 }
 
 function completeSignup(newUser) {
+  // Ensure user has an id
+  if (!newUser.id && !newUser._id) newUser.id = Date.now();
+
   // Save to local users store
   App.users.push(newUser);
   lsSet('gj_users', App.users);
 
-  // Show success briefly then log in
+  // Show success banner
   const successEl = document.getElementById('signupSuccess');
   if (successEl) successEl.classList.remove('hidden');
 
+  // After short delay: close auth modal, log in, open dashboard
   setTimeout(() => {
     closeModal('authModal');
     loginUser(newUser);
-  }, 1000);
+    // Open dashboard so user sees their account right away
+    setTimeout(() => openDashboard(), 400);
+  }, 1200);
 }
 
 function socialLogin(provider) {
@@ -2956,7 +2979,66 @@ function renderProfileForm() {
 }
 
 // ===== ADMIN =====
+const ADMIN_EMAIL = 'akashengsingh@gmail.com';
+const ADMIN_PASSWORD = '13141450#Akash';
+
 function openAdminPanel() {
+  // Check if already authenticated as admin this session
+  if (sessionStorage.getItem('gj_admin_auth') === 'true') {
+    renderAdminDashboard();
+    return;
+  }
+  // Show admin login prompt
+  const modal = document.getElementById('adminModal');
+  const content = document.getElementById('adminContent');
+  modal.classList.remove('hidden');
+  content.innerHTML = `
+    <div style="padding:32px;max-width:400px;margin:0 auto">
+      <div style="text-align:center;margin-bottom:28px">
+        <div style="font-size:48px;margin-bottom:12px">🔐</div>
+        <h2 style="font-family:'Syne',sans-serif;font-size:22px;margin-bottom:6px">Admin Access</h2>
+        <p style="color:var(--text-muted);font-size:14px">Enter admin credentials to continue</p>
+      </div>
+      <div id="adminLoginError" class="auth-error hidden" style="margin-bottom:16px">
+        <span>⚠️</span>
+        <span id="adminLoginErrorMsg">Invalid credentials</span>
+      </div>
+      <div class="form-group" style="margin-bottom:14px">
+        <label style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px">Admin Email</label>
+        <input type="email" id="adminEmailInput" placeholder="admin@gojourney.com"
+          style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--off-white)"
+          onkeydown="if(event.key==='Enter')verifyAdmin()">
+      </div>
+      <div class="form-group" style="margin-bottom:22px">
+        <label style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px">Password</label>
+        <input type="password" id="adminPassInput" placeholder="••••••••"
+          style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--off-white)"
+          onkeydown="if(event.key==='Enter')verifyAdmin()">
+      </div>
+      <button class="book-now-btn" onclick="verifyAdmin()" style="width:100%;margin-bottom:12px">Sign In as Admin →</button>
+      <button onclick="closeModal('adminModal')" style="width:100%;padding:10px;background:none;border:1.5px solid var(--border);border-radius:8px;font-size:14px;cursor:pointer;color:var(--text-muted)">Cancel</button>
+    </div>`;
+  setTimeout(() => document.getElementById('adminEmailInput')?.focus(), 100);
+}
+
+function verifyAdmin() {
+  const email = (document.getElementById('adminEmailInput')?.value || '').trim().toLowerCase();
+  const pass = document.getElementById('adminPassInput')?.value || '';
+  const errEl = document.getElementById('adminLoginError');
+  const errMsg = document.getElementById('adminLoginErrorMsg');
+
+  if (email === ADMIN_EMAIL.toLowerCase() && pass === ADMIN_PASSWORD) {
+    sessionStorage.setItem('gj_admin_auth', 'true');
+    renderAdminDashboard();
+  } else {
+    if (errEl) errEl.classList.remove('hidden');
+    if (errMsg) errMsg.textContent = 'Incorrect email or password. Access denied.';
+    const passEl = document.getElementById('adminPassInput');
+    if (passEl) { passEl.value = ''; passEl.focus(); }
+  }
+}
+
+function renderAdminDashboard() {
   const modal = document.getElementById('adminModal');
   const content = document.getElementById('adminContent');
   modal.classList.remove('hidden');
@@ -2967,7 +3049,10 @@ function openAdminPanel() {
         <h2>⚙️ Admin Panel</h2>
         <p style="opacity:0.7;font-size:13px">GoJourney Management Dashboard</p>
       </div>
-      <span style="background:rgba(255,255,255,0.15);padding:4px 12px;border-radius:50px;font-size:12px">Admin Mode</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="background:rgba(255,255,255,0.15);padding:4px 12px;border-radius:50px;font-size:12px">🔓 Admin Mode</span>
+        <button onclick="adminLogout()" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);padding:4px 12px;border-radius:50px;font-size:12px;cursor:pointer">Sign Out</button>
+      </div>
     </div>
     <div class="admin-nav">
       <button class="admin-tab active" onclick="switchAdminTab('overview',this)">📊 Overview</button>
@@ -2976,6 +3061,12 @@ function openAdminPanel() {
       <button class="admin-tab" onclick="switchAdminTab('listings',this)">🏨 Listings</button>
     </div>
     <div class="admin-body" id="adminBody">${renderAdminOverview(totalRevenue)}</div>`;
+}
+
+function adminLogout() {
+  sessionStorage.removeItem('gj_admin_auth');
+  closeModal('adminModal');
+  showToast('Admin session ended');
 }
 
 function renderAdminOverview(revenue) {
@@ -3036,21 +3127,25 @@ function switchAdminTab(tab, btn) {
       </div>`;
   } else if (tab === 'users') {
     body.innerHTML = `
-      <h3 style="margin-bottom:16px">Registered Users (${App.users.length})</h3>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <h3>Registered Users (${App.users.length})</h3>
+        <button class="btn-outline" style="font-size:12px;padding:8px 16px" onclick="showToast('Export coming soon!')">Export CSV</button>
+      </div>
       <div style="overflow-x:auto">
         <table class="admin-table">
-          <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Joined</th><th>Actions</th></tr></thead>
           <tbody>
-            ${App.users.map(u => `
+            ${App.users.length ? App.users.map(u => `
               <tr>
-                <td>${u.name}</td>
+                <td><strong>${u.name}</strong></td>
                 <td>${u.email}</td>
                 <td>${u.phone || '-'}</td>
                 <td><span style="background:var(--light);color:var(--primary);padding:2px 8px;border-radius:20px;font-size:11px">${u.role || 'user'}</span></td>
+                <td style="color:var(--text-muted);font-size:12px">${u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-IN') : new Date().toLocaleDateString('en-IN')}</td>
                 <td>
-              <button onclick="deleteUser('${u._id}')">Delete</button>
-</td>
-              </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted)">No users registered yet</td></tr>'}
+                  <button onclick="deleteUser('${u._id || u.id}')" style="font-size:11px;background:#fee2e2;color:#991b1b;padding:4px 10px;border-radius:4px;border:1px solid #fca5a5;cursor:pointer">🗑 Delete</button>
+                </td>
+              </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text-muted)">No users registered yet</td></tr>'}
           </tbody>
         </table>
       </div>`;
@@ -3210,7 +3305,6 @@ function init() {
 
 document.addEventListener('DOMContentLoaded', init);
 </script>
-</body>
-
 <script src="app.js"></script>
+</body>
 </html>
