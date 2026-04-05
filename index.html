@@ -2702,51 +2702,59 @@ function handleLogin() {
   const demoUser = { id: Date.now(), name: email.split('@')[0], email, phone: '', role: 'user' };
   loginUser(demoUser);
 }
-
 function handleSignup() {
+  console.log("Signup clicked");
+
   const firstName = document.getElementById('signupFirst').value.trim();
   const lastName = document.getElementById('signupLast').value.trim();
   const email = document.getElementById('signupEmail').value.trim();
   const password = document.getElementById('signupPass').value;
   const phone = document.getElementById('signupPhone').value.trim();
 
-  if (!firstName || !email || !password) { showToast('Please fill all required fields'); return; }
-  if (password.length < 8) { showToast('Password must be at least 8 characters'); return; }
-  fetch("https://gojourney-production.up.railway.app/api/auth/register", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({
-    name: firstName + (lastName ? ' ' + lastName : ''),
-    email: email,
-    password: password,
-    phone: phone
-  })
-})
-.then(res => res.json())
-.then(data => {
-  console.log(data);
-
-  if (data.error) {
-    showToast(data.error);
+  if (!firstName || !email || !password) {
+    showToast('Please fill all required fields');
     return;
   }
 
-  showToast("Signup successful 🎉");
+  if (password.length < 8) {
+    showToast('Password must be at least 8 characters');
+    return;
+  }
 
-  // optional login
-  localStorage.setItem("token", data.token);
+  fetch("https://gojourney-production.up.railway.app/api/auth/register", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      name: firstName + (lastName ? ' ' + lastName : ''),
+      email: email,
+      password: password,
+      phone: phone
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    console.log(data);
 
-  loginUser({
-    name: data.user.name,
-    email: data.user.email
+    if (data.error) {
+      showToast(data.error);
+      return;
+    }
+
+    showToast("Signup successful 🎉");
+
+    localStorage.setItem("token", data.token);
+
+    loginUser({
+      name: data.user.name,
+      email: data.user.email
+    });
+  })
+  .catch(err => {
+    console.error(err);
+    showToast("Signup failed ❌");
   });
-})
-.catch(err => {
-  console.error(err);
-  showToast("Signup failed ❌");
-});
 }
 
 function socialLogin(provider) {
@@ -3097,4 +3105,6 @@ function init() {
 document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
+<script src="app.js"></script>
+
 </html>
