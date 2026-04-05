@@ -238,6 +238,24 @@ app.patch('/api/admin/users/:id', authMiddleware, adminMiddleware, async (req, r
   res.json(user);
 });
 
+app.delete('/api/admin/users/:email', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const email = req.params.email;
+
+    const user = await User.findOneAndDelete({ email });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.json({ message: "User deleted successfully" });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 // --- LISTINGS ROUTES ---
 app.get('/api/listings', async (req, res) => {
   const listings = await Listing.find({ active: true });

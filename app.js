@@ -31,7 +31,10 @@ function deleteUser(email) {
   if (!confirm("Are you sure you want to delete this user?")) return;
 
   fetch(`https://gojourney-production.up.railway.app/api/auth/delete/${email}`, {
-    method: "DELETE"
+    method: "DELETE" ,
+     headers: {
+    "Authorization": "Bearer " + localStorage.getItem("token")
+  }
   })
     .then(res => res.json())
     .then(data => {
