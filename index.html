@@ -180,6 +180,15 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
 }
 .user-dropdown a:hover { background: var(--off-white); color: var(--primary); }
 
+/* Admin-only link in dropdown */
+.admin-only-link {
+  border-top: 1px solid var(--border);
+  background: #fef3c7 !important;
+  color: #92400e !important;
+  font-weight: 700 !important;
+}
+.admin-only-link:hover { background: #fde68a !important; color: #78350f !important; }
+
 .hamburger {
   display: none;
   background: none;
@@ -1099,6 +1108,39 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
 }
 .auth-success.hidden { display: none; }
 
+/* ===== ADMIN LOGIN MODAL ===== */
+.admin-login-modal { max-width: 420px; padding: 40px; }
+.admin-login-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+.admin-lock-icon {
+  width: 64px; height: 64px;
+  background: linear-gradient(135deg, #0f172a, #0A4DA3);
+  border-radius: 20px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px;
+  margin: 0 auto 16px;
+  box-shadow: 0 8px 24px rgba(10,77,163,0.3);
+}
+.admin-login-header h2 { font-size: 22px; margin-bottom: 6px; }
+.admin-login-header p { color: var(--text-muted); font-size: 13px; }
+
+/* ===== ACCESS DENIED ===== */
+.access-denied-banner {
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+  border: 2px solid #f87171;
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.access-denied-banner .deny-icon { font-size: 32px; flex-shrink: 0; }
+.access-denied-banner h3 { color: #991b1b; font-size: 16px; margin-bottom: 4px; }
+.access-denied-banner p { color: #b91c1c; font-size: 13px; }
+
 /* Booking Modal */
 .booking-header {
   background: linear-gradient(135deg, var(--primary), var(--cyan));
@@ -1253,6 +1295,15 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
   align-items: center;
   justify-content: space-between;
 }
+.admin-badge {
+  background: linear-gradient(135deg, #f97316, #ef4444);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 50px;
+  letter-spacing: 0.5px;
+}
 .admin-nav { display: flex; background: var(--off-white); border-bottom: 1px solid var(--border); overflow-x: auto; }
 .admin-tab {
   padding: 12px 20px;
@@ -1378,7 +1429,53 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
 </head>
 <body>
 
-<!-- Modals -->
+<!-- ===== ADMIN LOGIN MODAL ===== -->
+<div id="adminLoginModal" class="modal-overlay hidden">
+  <div class="modal-box admin-login-modal">
+    <button class="modal-close" onclick="closeModal('adminLoginModal')">✕</button>
+    <div class="admin-login-header">
+      <div class="admin-lock-icon">🔐</div>
+      <h2>Admin Access Only</h2>
+      <p>This area is restricted to authorized administrators</p>
+    </div>
+    <div id="adminLoginError" class="auth-error hidden">
+      <span>🚫</span>
+      <span id="adminLoginErrorMsg">Invalid credentials. Access denied.</span>
+    </div>
+    <div class="form-group">
+      <label>Admin Email</label>
+      <input type="email" id="adminEmail" placeholder="admin@gojourney.com" onkeydown="if(event.key==='Enter') verifyAdminLogin()">
+    </div>
+    <div class="form-group">
+      <label>Admin Password</label>
+      <input type="password" id="adminPassword" placeholder="••••••••" onkeydown="if(event.key==='Enter') verifyAdminLogin()">
+    </div>
+    <button class="btn-primary full-width" onclick="verifyAdminLogin()" style="margin-top:8px">🔓 Access Admin Panel</button>
+    <p style="text-align:center;font-size:12px;color:var(--text-muted);margin-top:16px">⚠️ Unauthorized access attempts are logged</p>
+  </div>
+</div>
+
+<!-- ===== ACCESS DENIED MODAL (for regular users trying admin) ===== -->
+<div id="accessDeniedModal" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width:420px;padding:40px">
+    <button class="modal-close" onclick="closeModal('accessDeniedModal')">✕</button>
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="font-size:64px;margin-bottom:16px">🚫</div>
+      <h2 style="color:#991b1b;margin-bottom:8px">Access Denied</h2>
+      <p style="color:var(--text-muted);font-size:14px">You do not have permission to access the Admin Panel. This area is restricted to authorized administrators only.</p>
+    </div>
+    <div class="access-denied-banner">
+      <div class="deny-icon">⚠️</div>
+      <div>
+        <h3>Admin Credentials Required</h3>
+        <p>Please contact the system administrator if you believe this is an error.</p>
+      </div>
+    </div>
+    <button class="book-now-btn" onclick="closeModal('accessDeniedModal')">Got It</button>
+  </div>
+</div>
+
+<!-- ===== OTHER MODALS ===== -->
 <div id="authModal" class="modal-overlay hidden">
   <div class="modal-box auth-modal">
     <button class="modal-close" onclick="closeModal('authModal')">✕</button>
@@ -1391,13 +1488,10 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
     <div id="loginForm">
       <h2>Welcome Back</h2>
       <p class="auth-sub">Sign in to access your bookings</p>
-
-      <!-- Error banner for login -->
       <div id="loginError" class="auth-error hidden">
         <span>⚠️</span>
         <span id="loginErrorMsg">No account found. Please sign up first.</span>
       </div>
-
       <div class="form-group">
         <label>Email Address</label>
         <input type="email" id="loginEmail" placeholder="you@example.com">
@@ -1425,18 +1519,14 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
     <div id="signupForm" class="hidden">
       <h2>Create Account</h2>
       <p class="auth-sub">Join 2M+ happy travelers — it's free!</p>
-
-      <!-- Success banner for signup -->
       <div id="signupSuccess" class="auth-success hidden">
         <span>✅</span>
         <span>Account created! You're now signed in.</span>
       </div>
-      <!-- Error banner for signup -->
       <div id="signupError" class="auth-error hidden">
         <span>⚠️</span>
         <span id="signupErrorMsg">Something went wrong. Please try again.</span>
       </div>
-
       <div class="form-row">
         <div class="form-group"><label>First Name *</label><input type="text" id="signupFirst" placeholder="John"></div>
         <div class="form-group"><label>Last Name</label><input type="text" id="signupLast" placeholder="Doe"></div>
@@ -1486,7 +1576,6 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
       <li><a href="#services">Services</a></li>
       <li><a href="#destinations">Destinations</a></li>
       <li><a href="#deals">Deals</a></li>
-      <li><a href="#" onclick="openAdminPanel(); return false;">Admin</a></li>
     </ul>
     <div class="nav-actions">
       <button class="btn-outline" onclick="openAuthModal('login')" id="loginBtn">Sign In</button>
@@ -1498,6 +1587,7 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
         <div class="user-dropdown hidden" id="userDropdown">
           <a href="#" onclick="openDashboard(); return false;">My Bookings</a>
           <a href="#" onclick="openWishlist(); return false;">Wishlist</a>
+          <a href="#" id="adminPanelLink" class="admin-only-link hidden" onclick="openAdminPanel(); return false;">⚙️ Admin Panel</a>
           <a href="#" onclick="logout(); return false;">Logout</a>
         </div>
       </div>
@@ -1996,7 +2086,7 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
         <p>Your trusted travel partner for unforgettable journeys across India and beyond.</p>
         <div class="social-links">
           <a href="#" onclick="showToast('Opening Facebook...')">Facebook</a>
-          <a href="https://www.instagram.com/akas_h13141/" target="_blank" onclick="showToast('Opening Instagram...')">Instagram</a>
+          <a href="https://www.instagram.com/akas_h13141/" target="_blank">Instagram</a>
           <a href="#" onclick="showToast('Opening Twitter...')">Twitter</a>
         </div>
       </div>
@@ -2017,7 +2107,6 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
           <li><a href="#" onclick="showToast('Careers page coming soon!'); return false;">Careers</a></li>
           <li><a href="#" onclick="showToast('Press page coming soon!'); return false;">Press</a></li>
           <li><a href="#" onclick="showToast('Blog coming soon!'); return false;">Blog</a></li>
-          <li><a href="#" onclick="openAdminPanel(); return false;">Admin Panel</a></li>
         </ul>
       </div>
       <div class="footer-col">
@@ -2040,8 +2129,15 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
 </footer>
 
 <script>
+// ===== ADMIN CREDENTIALS (hardcoded, single admin) =====
+const ADMIN_CREDENTIALS = {
+  email: 'akashengsingh@gmail.com',
+  password: '13141450'
+};
+
 const App = {
   currentUser: null,
+  isAdminAuthenticated: false,
   wishlist: [],
   bookings: [],
   users: [],
@@ -2220,14 +2316,11 @@ function performSearch(type) {
 function renderResults(results) {
   const grid = document.getElementById('resultsGrid');
   grid.innerHTML = '';
-
   if (!results.length) {
     grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:40px">No results found. Try different search criteria.</p>';
     return;
   }
-
   window._resultItems = results;
-
   results.forEach((item, idx) => {
     const card = createResultCard(item, idx);
     grid.appendChild(card);
@@ -2337,7 +2430,6 @@ function createResultCard(item, idx) {
         <button class="book-now-btn" onclick="bookItem(${idx})">Book Shuttle</button>
       </div>`;
   }
-
   return div;
 }
 
@@ -2714,13 +2806,12 @@ function nextBookingStep() {
   }
 }
 
-// ===== AUTH — SIGNUP-FIRST ENFORCEMENT =====
+// ===== MODAL HELPERS =====
 function openModal(id) { document.getElementById(id)?.classList.remove('hidden'); }
 function closeModal(id) { document.getElementById(id)?.classList.add('hidden'); }
 
-// Opens auth modal and switches to the correct tab
+// ===== AUTH =====
 function openAuthModal(mode) {
-  // Clear previous messages
   hideAuthMessages();
   openModal('authModal');
   switchAuth(mode || 'signup');
@@ -2760,7 +2851,6 @@ function switchAuth(mode) {
   }
 }
 
-// ===== LOGIN — checks if account exists first =====
 function handleLogin() {
   const email = document.getElementById('loginEmail').value.trim();
   const password = document.getElementById('loginPassword').value;
@@ -2770,13 +2860,15 @@ function handleLogin() {
     return;
   }
 
-  // Check if user has a registered account
-  const registeredUser = App.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+  // Block admin credentials from regular login
+  if (email.toLowerCase() === ADMIN_CREDENTIALS.email.toLowerCase()) {
+    showAuthError('login', 'This account requires admin access. Please use the Admin Panel.');
+    return;
+  }
 
+  const registeredUser = App.users.find(u => u.email.toLowerCase() === email.toLowerCase());
   if (!registeredUser) {
-    // No account found — redirect to signup
     showAuthError('login', 'No account found with this email. Please sign up first.');
-    // After a short delay, switch to signup and pre-fill the email
     setTimeout(() => {
       switchAuth('signup');
       const signupEmailEl = document.getElementById('signupEmail');
@@ -2785,11 +2877,9 @@ function handleLogin() {
     return;
   }
 
-  // Account exists — log them in
   loginUser(registeredUser);
 }
 
-// ===== SIGNUP — creates account then logs in =====
 function handleSignup() {
   const firstName = document.getElementById('signupFirst').value.trim();
   const lastName = document.getElementById('signupLast').value.trim();
@@ -2812,7 +2902,12 @@ function handleSignup() {
     return;
   }
 
-  // Check if email already registered
+  // Block admin email from being registered as a normal user
+  if (email.toLowerCase() === ADMIN_CREDENTIALS.email.toLowerCase()) {
+    showAuthError('signup', 'This email is reserved. Please use a different email address.');
+    return;
+  }
+
   const existing = App.users.find(u => u.email.toLowerCase() === email.toLowerCase());
   if (existing) {
     showAuthError('signup', 'An account with this email already exists. Please sign in instead.');
@@ -2824,41 +2919,14 @@ function handleSignup() {
     return;
   }
 
-  // Try backend registration
-  fetch('https://gojourney-production.up.railway.app/api/auth/register', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      name: firstName + (lastName ? ' ' + lastName : ''),
-      email,
-      password,
-      phone
-    })
-  })
-  .then(res => res.json())
-  .then(data => {
-    if (data.error) {
-      showAuthError('signup', data.error);
-      return;
-    }
-    if (data.token) localStorage.setItem('gj_token', data.token);
-    completeSignup({ name: data.user?.name || firstName + (lastName ? ' ' + lastName : ''), email, phone, role: 'user' });
-  })
-  .catch(() => {
-    // Backend unavailable — register locally
-    completeSignup({ id: Date.now(), name: firstName + (lastName ? ' ' + lastName : ''), email, phone, role: 'user' });
-  });
+  completeSignup({ id: Date.now(), name: firstName + (lastName ? ' ' + lastName : ''), email, phone, role: 'user' });
 }
 
 function completeSignup(newUser) {
-  // Save to local users store
   App.users.push(newUser);
   lsSet('gj_users', App.users);
-
-  // Show success briefly then log in
   const successEl = document.getElementById('signupSuccess');
   if (successEl) successEl.classList.remove('hidden');
-
   setTimeout(() => {
     closeModal('authModal');
     loginUser(newUser);
@@ -2867,7 +2935,6 @@ function completeSignup(newUser) {
 
 function socialLogin(provider) {
   const demoUser = { id: Date.now(), name: provider + ' User', email: 'user@' + provider.toLowerCase() + '.com', phone: '', role: 'user' };
-  // Also register this social user
   const existing = App.users.find(u => u.email === demoUser.email);
   if (!existing) {
     App.users.push(demoUser);
@@ -2886,6 +2953,7 @@ function loginUser(user) {
 
 function logout() {
   App.currentUser = null;
+  App.isAdminAuthenticated = false;
   try { localStorage.removeItem('gj_currentUser'); } catch(e) {}
   updateAuthUI();
   showToast('Signed out successfully');
@@ -2895,18 +2963,258 @@ function updateAuthUI() {
   const loginBtn = document.getElementById('loginBtn');
   const userMenu = document.getElementById('userMenu');
   const userInitial = document.getElementById('userInitial');
-  // The "Book Now" button in nav always shows
+  const adminLink = document.getElementById('adminPanelLink');
+
   if (App.currentUser) {
     loginBtn?.classList.add('hidden');
     userMenu?.classList.remove('hidden');
     if (userInitial) userInitial.textContent = App.currentUser.name.charAt(0).toUpperCase();
+    // Only show admin panel link if admin is authenticated
+    if (adminLink) {
+      if (App.isAdminAuthenticated) {
+        adminLink.classList.remove('hidden');
+      } else {
+        adminLink.classList.add('hidden');
+      }
+    }
   } else {
     loginBtn?.classList.remove('hidden');
     userMenu?.classList.add('hidden');
+    if (adminLink) adminLink.classList.add('hidden');
   }
 }
 
-// ===== DASHBOARD =====
+// ===== ADMIN ACCESS CONTROL =====
+
+/**
+ * Entry point when admin panel is clicked.
+ * If already admin-authenticated → open panel directly.
+ * If normal user → show access denied.
+ * If not logged in → show admin login modal.
+ */
+function openAdminPanel() {
+  if (App.isAdminAuthenticated) {
+    renderAdminPanel();
+    return;
+  }
+  // If a regular user is logged in, show access denied
+  if (App.currentUser && !App.isAdminAuthenticated) {
+    openModal('accessDeniedModal');
+    return;
+  }
+  // Not logged in → show admin login
+  showAdminLoginModal();
+}
+
+function showAdminLoginModal() {
+  document.getElementById('adminEmail').value = '';
+  document.getElementById('adminPassword').value = '';
+  document.getElementById('adminLoginError').classList.add('hidden');
+  openModal('adminLoginModal');
+}
+
+/**
+ * Verifies admin credentials. Only exact match with ADMIN_CREDENTIALS is accepted.
+ * Regular users cannot pass this check under any circumstances.
+ */
+function verifyAdminLogin() {
+  const email = document.getElementById('adminEmail').value.trim();
+  const password = document.getElementById('adminPassword').value;
+  const errEl = document.getElementById('adminLoginError');
+  const errMsg = document.getElementById('adminLoginErrorMsg');
+
+  if (!email || !password) {
+    errEl.classList.remove('hidden');
+    errMsg.textContent = 'Please enter admin email and password.';
+    return;
+  }
+
+  // Strict credential check — must match exactly
+  const emailMatch = email.toLowerCase() === ADMIN_CREDENTIALS.email.toLowerCase();
+  const passMatch = password === ADMIN_CREDENTIALS.password;
+
+  if (!emailMatch || !passMatch) {
+    errEl.classList.remove('hidden');
+    errMsg.textContent = 'Invalid admin credentials. Access denied.';
+    // Clear password field for security
+    document.getElementById('adminPassword').value = '';
+    return;
+  }
+
+  // Admin authenticated successfully
+  App.isAdminAuthenticated = true;
+  closeModal('adminLoginModal');
+
+  // Log admin in as a special admin user (separate from regular users)
+  const adminUser = {
+    id: 'admin-root',
+    name: 'Admin',
+    email: ADMIN_CREDENTIALS.email,
+    role: 'admin'
+  };
+  App.currentUser = adminUser;
+  updateAuthUI();
+  showToast('🔐 Admin access granted');
+  renderAdminPanel();
+}
+
+function renderAdminPanel() {
+  // Double-check: must be admin authenticated to view this
+  if (!App.isAdminAuthenticated) {
+    openModal('accessDeniedModal');
+    return;
+  }
+
+  const modal = document.getElementById('adminModal');
+  const content = document.getElementById('adminContent');
+  modal.classList.remove('hidden');
+  const totalRevenue = App.bookings.reduce((s, b) => s + (b.amount || 0), 0);
+
+  content.innerHTML = `
+    <div class="admin-header">
+      <div>
+        <h2>⚙️ Admin Panel</h2>
+        <p style="opacity:0.7;font-size:13px;margin-top:2px">GoJourney Management Dashboard</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="admin-badge">🔐 ADMIN</span>
+        <button onclick="adminLogout()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:white;padding:6px 14px;border-radius:20px;font-size:12px;cursor:pointer;font-family:inherit">Logout</button>
+      </div>
+    </div>
+    <div class="admin-nav">
+      <button class="admin-tab active" onclick="switchAdminTab('overview',this)">📊 Overview</button>
+      <button class="admin-tab" onclick="switchAdminTab('bookings',this)">📋 Bookings</button>
+      <button class="admin-tab" onclick="switchAdminTab('users',this)">👥 Users</button>
+      <button class="admin-tab" onclick="switchAdminTab('listings',this)">🏨 Listings</button>
+    </div>
+    <div class="admin-body" id="adminBody">${renderAdminOverview(totalRevenue)}</div>`;
+}
+
+function adminLogout() {
+  App.isAdminAuthenticated = false;
+  App.currentUser = null;
+  closeModal('adminModal');
+  updateAuthUI();
+  showToast('Admin session ended');
+}
+
+function renderAdminOverview(revenue) {
+  return `
+    <div class="admin-stats">
+      <div class="admin-stat"><div class="stat-number">${App.bookings.length}</div><div class="stat-label">Total Bookings</div></div>
+      <div class="admin-stat"><div class="stat-number">${App.users.length}</div><div class="stat-label">Registered Users</div></div>
+      <div class="admin-stat"><div class="stat-number" style="font-size:20px">₹${revenue.toLocaleString()}</div><div class="stat-label">Total Revenue</div></div>
+      <div class="admin-stat"><div class="stat-number">${App.bookings.filter(b=>b.status==='confirmed').length}</div><div class="stat-label">Active Bookings</div></div>
+    </div>
+    <h3 style="margin-bottom:12px;font-size:16px">Recent Bookings</h3>
+    <div style="overflow-x:auto">
+      <table class="admin-table">
+        <thead><tr><th>ID</th><th>Type</th><th>Service</th><th>Amount</th><th>Date</th><th>Status</th></tr></thead>
+        <tbody>
+          ${App.bookings.slice(-10).reverse().map(b => `
+            <tr>
+              <td><code>${b.id}</code></td>
+              <td style="text-transform:capitalize">${b.type}</td>
+              <td>${b.item?.name || b.item?.title || b.item?.route || '-'}</td>
+              <td>₹${b.amount?.toLocaleString() || '-'}</td>
+              <td>${b.date}</td>
+              <td><span class="booking-status status-${b.status}">${b.status}</span></td>
+            </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text-muted)">No bookings yet</td></tr>'}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function switchAdminTab(tab, btn) {
+  // Security check: only admin can switch tabs
+  if (!App.isAdminAuthenticated) {
+    closeModal('adminModal');
+    openModal('accessDeniedModal');
+    return;
+  }
+
+  document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  const body = document.getElementById('adminBody');
+
+  if (tab === 'overview') {
+    body.innerHTML = renderAdminOverview(App.bookings.reduce((s,b)=>s+(b.amount||0),0));
+  } else if (tab === 'bookings') {
+    body.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <h3>All Bookings (${App.bookings.length})</h3>
+        <button class="btn-outline" style="font-size:12px;padding:8px 16px" onclick="showToast('Export coming soon!')">Export CSV</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="admin-table">
+          <thead><tr><th>ID</th><th>User</th><th>Type</th><th>Service</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody>
+            ${App.bookings.map(b => `
+              <tr>
+                <td><code>${b.id}</code></td>
+                <td>${b.user}</td>
+                <td style="text-transform:capitalize">${b.type}</td>
+                <td>${b.item?.name || b.item?.title || '-'}</td>
+                <td>₹${b.amount?.toLocaleString()}</td>
+                <td><span class="booking-status status-${b.status}">${b.status}</span></td>
+                <td><button onclick="showToast('Booking cancelled')" style="font-size:11px;background:var(--light);color:var(--primary);padding:4px 8px;border-radius:4px;border:1px solid var(--border);cursor:pointer">Cancel</button></td>
+              </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">No bookings</td></tr>'}
+          </tbody>
+        </table>
+      </div>`;
+  } else if (tab === 'users') {
+    body.innerHTML = `
+      <h3 style="margin-bottom:16px">Registered Users (${App.users.length})</h3>
+      <div style="overflow-x:auto">
+        <table class="admin-table">
+          <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Bookings</th><th>Actions</th></tr></thead>
+          <tbody>
+            ${App.users.map(u => {
+              const userBookingCount = App.bookings.filter(b => b.user === u.email).length;
+              return `
+                <tr>
+                  <td><strong>${u.name}</strong></td>
+                  <td>${u.email}</td>
+                  <td>${u.phone || '<span style="color:var(--text-muted)">—</span>'}</td>
+                  <td><span style="background:var(--light);color:var(--primary);padding:2px 8px;border-radius:20px;font-size:11px">${u.role || 'user'}</span></td>
+                  <td><span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:20px;font-size:11px">${userBookingCount} booking${userBookingCount !== 1 ? 's' : ''}</span></td>
+                  <td>
+                    <button onclick="showToast('User management coming soon!')" style="font-size:11px;background:var(--light);color:var(--primary);padding:4px 8px;border-radius:4px;border:1px solid var(--border);cursor:pointer">Edit</button>
+                  </td>
+                </tr>`;
+            }).join('') || '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">No users registered yet</td></tr>'}
+          </tbody>
+        </table>
+      </div>`;
+  } else if (tab === 'listings') {
+    body.innerHTML = `
+      <div style="display:flex;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <h3>Hotel Listings (${HOTELS.length})</h3>
+        <button class="book-now-btn" style="width:auto;padding:8px 16px;font-size:12px" onclick="showToast('Add listing feature coming soon!')">+ Add Listing</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="admin-table">
+          <thead><tr><th>Name</th><th>Location</th><th>Rating</th><th>Price/Night</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>
+            ${HOTELS.map(h => `
+              <tr>
+                <td>${h.name}</td>
+                <td>${h.location}</td>
+                <td>⭐ ${h.rating}</td>
+                <td>₹${h.price.toLocaleString()}</td>
+                <td><span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:20px;font-size:11px">Active</span></td>
+                <td>
+                  <button onclick="showToast('Edit coming soon!')" style="font-size:11px;background:var(--light);color:var(--primary);padding:4px 8px;border-radius:4px;border:1px solid var(--border);cursor:pointer;margin-right:4px">Edit</button>
+                  <button onclick="showToast('Listing paused')" style="font-size:11px;background:#fee2e2;color:#991b1b;padding:4px 8px;border-radius:4px;border:1px solid #fca5a5;cursor:pointer">Pause</button>
+                </td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  }
+}
+
+// ===== DASHBOARD (regular users) =====
 function openDashboard() {
   if (!App.currentUser) { openAuthModal('signup'); return; }
   const userBookings = App.bookings.filter(b => b.user === App.currentUser.email);
@@ -2964,131 +3272,6 @@ function renderProfileForm() {
       <div class="form-group"><label>Phone</label><input type="tel" value="${App.currentUser.phone || ''}" placeholder="+91 98765 43210" class="inline-input" style="width:100%"></div>
     </div>
     <button class="book-now-btn" style="width:auto;padding:12px 28px;margin-top:12px" onclick="showToast('Profile updated successfully!')">Save Changes</button>`;
-}
-
-// ===== ADMIN =====
-function openAdminPanel() {
-  const modal = document.getElementById('adminModal');
-  const content = document.getElementById('adminContent');
-  modal.classList.remove('hidden');
-  const totalRevenue = App.bookings.reduce((s, b) => s + (b.amount || 0), 0);
-  content.innerHTML = `
-    <div class="admin-header">
-      <div>
-        <h2>⚙️ Admin Panel</h2>
-        <p style="opacity:0.7;font-size:13px">GoJourney Management Dashboard</p>
-      </div>
-      <span style="background:rgba(255,255,255,0.15);padding:4px 12px;border-radius:50px;font-size:12px">Admin Mode</span>
-    </div>
-    <div class="admin-nav">
-      <button class="admin-tab active" onclick="switchAdminTab('overview',this)">📊 Overview</button>
-      <button class="admin-tab" onclick="switchAdminTab('bookings',this)">📋 Bookings</button>
-      <button class="admin-tab" onclick="switchAdminTab('users',this)">👥 Users</button>
-      <button class="admin-tab" onclick="switchAdminTab('listings',this)">🏨 Listings</button>
-    </div>
-    <div class="admin-body" id="adminBody">${renderAdminOverview(totalRevenue)}</div>`;
-}
-
-function renderAdminOverview(revenue) {
-  return `
-    <div class="admin-stats">
-      <div class="admin-stat"><div class="stat-number">${App.bookings.length}</div><div class="stat-label">Total Bookings</div></div>
-      <div class="admin-stat"><div class="stat-number">${App.users.length}</div><div class="stat-label">Registered Users</div></div>
-      <div class="admin-stat"><div class="stat-number" style="font-size:20px">₹${revenue.toLocaleString()}</div><div class="stat-label">Total Revenue</div></div>
-      <div class="admin-stat"><div class="stat-number">${App.bookings.filter(b=>b.status==='confirmed').length}</div><div class="stat-label">Active Bookings</div></div>
-    </div>
-    <h3 style="margin-bottom:12px;font-size:16px">Recent Bookings</h3>
-    <div style="overflow-x:auto">
-      <table class="admin-table">
-        <thead><tr><th>ID</th><th>Type</th><th>Service</th><th>Amount</th><th>Date</th><th>Status</th></tr></thead>
-        <tbody>
-          ${App.bookings.slice(-10).reverse().map(b => `
-            <tr>
-              <td><code>${b.id}</code></td>
-              <td style="text-transform:capitalize">${b.type}</td>
-              <td>${b.item?.name || b.item?.title || b.item?.route || '-'}</td>
-              <td>₹${b.amount?.toLocaleString() || '-'}</td>
-              <td>${b.date}</td>
-              <td><span class="booking-status status-${b.status}">${b.status}</span></td>
-            </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text-muted)">No bookings yet</td></tr>'}
-        </tbody>
-      </table>
-    </div>`;
-}
-
-function switchAdminTab(tab, btn) {
-  document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
-  btn.classList.add('active');
-  const body = document.getElementById('adminBody');
-  if (tab === 'overview') {
-    body.innerHTML = renderAdminOverview(App.bookings.reduce((s,b)=>s+(b.amount||0),0));
-  } else if (tab === 'bookings') {
-    body.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
-        <h3>All Bookings (${App.bookings.length})</h3>
-        <button class="btn-outline" style="font-size:12px;padding:8px 16px" onclick="showToast('Export coming soon!')">Export CSV</button>
-      </div>
-      <div style="overflow-x:auto">
-        <table class="admin-table">
-          <thead><tr><th>ID</th><th>User</th><th>Type</th><th>Service</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead>
-          <tbody>
-            ${App.bookings.map(b => `
-              <tr>
-                <td><code>${b.id}</code></td>
-                <td>${b.user}</td>
-                <td style="text-transform:capitalize">${b.type}</td>
-                <td>${b.item?.name || b.item?.title || '-'}</td>
-                <td>₹${b.amount?.toLocaleString()}</td>
-                <td><span class="booking-status status-${b.status}">${b.status}</span></td>
-                <td><button onclick="showToast('Booking cancelled')" style="font-size:11px;background:var(--light);color:var(--primary);padding:4px 8px;border-radius:4px;border:1px solid var(--border);cursor:pointer">Cancel</button></td>
-              </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">No bookings</td></tr>'}
-          </tbody>
-        </table>
-      </div>`;
-  } else if (tab === 'users') {
-    body.innerHTML = `
-      <h3 style="margin-bottom:16px">Registered Users (${App.users.length})</h3>
-      <div style="overflow-x:auto">
-        <table class="admin-table">
-          <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Actions</th></tr></thead>
-          <tbody>
-            ${App.users.map(u => `
-              <tr>
-                <td>${u.name}</td>
-                <td>${u.email}</td>
-                <td>${u.phone || '-'}</td>
-                <td><span style="background:var(--light);color:var(--primary);padding:2px 8px;border-radius:20px;font-size:11px">${u.role || 'user'}</span></td>
-                <td><button onclick="showToast('User management coming soon!')" style="font-size:11px;background:var(--light);color:var(--primary);padding:4px 8px;border-radius:4px;border:1px solid var(--border);cursor:pointer">Edit</button></td>
-              </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted)">No users registered yet</td></tr>'}
-          </tbody>
-        </table>
-      </div>`;
-  } else if (tab === 'listings') {
-    body.innerHTML = `
-      <div style="display:flex;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
-        <h3>Hotel Listings (${HOTELS.length})</h3>
-        <button class="book-now-btn" style="width:auto;padding:8px 16px;font-size:12px" onclick="showToast('Add listing feature coming soon!')">+ Add Listing</button>
-      </div>
-      <div style="overflow-x:auto">
-        <table class="admin-table">
-          <thead><tr><th>Name</th><th>Location</th><th>Rating</th><th>Price/Night</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody>
-            ${HOTELS.map(h => `
-              <tr>
-                <td>${h.name}</td>
-                <td>${h.location}</td>
-                <td>⭐ ${h.rating}</td>
-                <td>₹${h.price.toLocaleString()}</td>
-                <td><span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:20px;font-size:11px">Active</span></td>
-                <td>
-                  <button onclick="showToast('Edit coming soon!')" style="font-size:11px;background:var(--light);color:var(--primary);padding:4px 8px;border-radius:4px;border:1px solid var(--border);cursor:pointer;margin-right:4px">Edit</button>
-                  <button onclick="showToast('Listing paused')" style="font-size:11px;background:#fee2e2;color:#991b1b;padding:4px 8px;border-radius:4px;border:1px solid #fca5a5;cursor:pointer">Pause</button>
-                </td>
-              </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>`;
-  }
 }
 
 // ===== DESTINATIONS =====
@@ -3199,7 +3382,10 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
 // ===== INIT =====
 function init() {
   const savedUser = lsGet('gj_currentUser', null);
-  if (savedUser) { App.currentUser = savedUser; updateAuthUI(); }
+  if (savedUser && savedUser.role !== 'admin') {
+    App.currentUser = savedUser;
+    updateAuthUI();
+  }
 
   const today = new Date().toISOString().split('T')[0];
   const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
