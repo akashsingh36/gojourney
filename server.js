@@ -240,19 +240,10 @@ app.patch('/api/admin/users/:id', authMiddleware, adminMiddleware, async (req, r
 
 app.delete('/api/admin/users/:id', authMiddleware, adminMiddleware, async (req, res) => {
   try {
-    const email = req.params.email;
-
-    const user = await User.findOneAndDelete({ email });
-
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
+    await User.findByIdAndDelete(req.params.id);
     res.json({ message: "User deleted successfully" });
-
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: err.message });
   }
 });
 
