@@ -120,7 +120,7 @@ document.addEventListener("click", function (e) {
 
 // ================= DELETE USER =================
 function deleteUser(id) {
-  if (!confirm("Are you sure you want to delete this user?")) return;
+  if (!confirm("Are you sure?")) return;
 
   fetch(`https://gojourney-production.up.railway.app/api/admin/users/${id}`, {
     method: "DELETE",
@@ -129,19 +129,8 @@ function deleteUser(id) {
     }
   })
   .then(res => res.json())
-  .then(data => {
-    console.log(data);
-
-    if (data.error) {
-      showToast(data.error);
-      return;
-    }
-
-    showToast("User deleted ✅");
+  .then(() => {
+    alert("Deleted ✅");
     location.reload();
-  })
-  .catch(err => {
-    console.error(err);
-    showToast("Delete failed ❌");
   });
 }
