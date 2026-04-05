@@ -1,7 +1,7 @@
 console.log("App.js loaded 🚀");
 
 // ================= GLOBAL APP STATE =================
-const App = {
+windows.App = {
   currentUser: null
 };
 

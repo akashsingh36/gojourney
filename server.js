@@ -11,7 +11,7 @@ const jwt = require('jsonwebtoken');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'gojourney_secret_key_2026';
 const MONGO_URI = process.env.MONGO_URI;
 
@@ -121,14 +121,34 @@ app.post('/api/auth/register', async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ error: 'Invalid credentials' });
-    
-    const valid = password === user.password;
-    if (!valid) return res.status(400).json({ error: 'Invalid credentials' });
-    
-    const token = jwt.sign({ id: user._id, email: user.email, role: user.role, name: user.name }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
+
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid credentials' });
+    }
+
+    const valid = password === user.password; // ✅ FIXED
+
+    if (!valid) {
+      return res.status(400).json({ error: 'Invalid credentials' });
+    }
+
+    const token = jwt.sign({
+      id: user._id,
+      email: user.email,
+      role: user.role
+    }, process.env.JWT_SECRET);
+
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email
+      }
+    });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
