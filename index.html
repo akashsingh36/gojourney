@@ -433,7 +433,6 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
 .filter-group input[type=range] { width: 100%; accent-color: var(--primary); }
 .price-labels { display: flex; justify-content: space-between; font-size: 12px; margin-top: 4px; color: var(--text-muted); }
 
-/* RESPONSIVE RESULTS GRID */
 .results-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -499,7 +498,6 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
 .result-price span { font-size: 12px; color: var(--text-muted); }
 .result-price del { font-size: 14px; color: var(--text-muted); }
 
-/* ===== BOOK NOW BUTTON — FULLY RESPONSIVE ===== */
 .book-now-btn {
   width: 100%;
   padding: 12px 16px;
@@ -528,10 +526,6 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
 .book-now-btn:active {
   transform: translateY(0) scale(0.98);
   box-shadow: 0 2px 8px rgba(10,77,163,0.18);
-}
-.book-now-btn:focus-visible {
-  outline: 3px solid rgba(10,77,163,0.4);
-  outline-offset: 2px;
 }
 
 /* ===== SECTION SHARED ===== */
@@ -1045,7 +1039,7 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
   font-size: 13px;
 }
 .auth-options label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
-.link { color: var(--primary); font-weight: 600; }
+.link { color: var(--primary); font-weight: 600; cursor: pointer; }
 .social-divider { text-align: center; position: relative; margin: 20px 0; }
 .social-divider::before {
   content: '';
@@ -1074,6 +1068,36 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
   cursor: pointer;
 }
 .social-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+/* ===== AUTH ERROR MESSAGE ===== */
+.auth-error {
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.auth-error.hidden { display: none; }
+
+/* ===== AUTH SUCCESS MESSAGE ===== */
+.auth-success {
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  color: #166534;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.auth-success.hidden { display: none; }
 
 /* Booking Modal */
 .booking-header {
@@ -1334,7 +1358,6 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
   .slide-dots { right: 16px; bottom: 16px; }
 }
 
-/* Inline input fields used inside booking modal */
 .inline-input {
   width: 100%;
   border: 1.5px solid var(--border);
@@ -1360,12 +1383,21 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
   <div class="modal-box auth-modal">
     <button class="modal-close" onclick="closeModal('authModal')">✕</button>
     <div class="auth-tabs">
-      <button class="auth-tab active" onclick="switchAuth('login')">Sign In</button>
-      <button class="auth-tab" onclick="switchAuth('signup')">Sign Up</button>
+      <button class="auth-tab active" id="loginTab" onclick="switchAuth('login')">Sign In</button>
+      <button class="auth-tab" id="signupTab" onclick="switchAuth('signup')">Sign Up</button>
     </div>
+
+    <!-- LOGIN FORM -->
     <div id="loginForm">
       <h2>Welcome Back</h2>
       <p class="auth-sub">Sign in to access your bookings</p>
+
+      <!-- Error banner for login -->
+      <div id="loginError" class="auth-error hidden">
+        <span>⚠️</span>
+        <span id="loginErrorMsg">No account found. Please sign up first.</span>
+      </div>
+
       <div class="form-group">
         <label>Email Address</label>
         <input type="email" id="loginEmail" placeholder="you@example.com">
@@ -1384,18 +1416,38 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
         <button class="social-btn" onclick="socialLogin('Google')">🔵 Google</button>
         <button class="social-btn" onclick="socialLogin('Facebook')">🔷 Facebook</button>
       </div>
+      <p style="text-align:center;font-size:13px;margin-top:20px;color:var(--text-muted)">
+        Don't have an account? <span class="link" onclick="switchAuth('signup')">Sign up for free →</span>
+      </p>
     </div>
+
+    <!-- SIGNUP FORM -->
     <div id="signupForm" class="hidden">
       <h2>Create Account</h2>
-      <p class="auth-sub">Join 2M+ happy travelers</p>
+      <p class="auth-sub">Join 2M+ happy travelers — it's free!</p>
+
+      <!-- Success banner for signup -->
+      <div id="signupSuccess" class="auth-success hidden">
+        <span>✅</span>
+        <span>Account created! You're now signed in.</span>
+      </div>
+      <!-- Error banner for signup -->
+      <div id="signupError" class="auth-error hidden">
+        <span>⚠️</span>
+        <span id="signupErrorMsg">Something went wrong. Please try again.</span>
+      </div>
+
       <div class="form-row">
-        <div class="form-group"><label>First Name</label><input type="text" id="signupFirst" placeholder="John"></div>
+        <div class="form-group"><label>First Name *</label><input type="text" id="signupFirst" placeholder="John"></div>
         <div class="form-group"><label>Last Name</label><input type="text" id="signupLast" placeholder="Doe"></div>
       </div>
-      <div class="form-group"><label>Email</label><input type="email" id="signupEmail" placeholder="you@example.com"></div>
-      <div class="form-group"><label>Password</label><input type="password" id="signupPass" placeholder="Min 8 characters"></div>
+      <div class="form-group"><label>Email *</label><input type="email" id="signupEmail" placeholder="you@example.com"></div>
+      <div class="form-group"><label>Password * <span style="font-weight:400;color:var(--text-muted)">(min 8 characters)</span></label><input type="password" id="signupPass" placeholder="Min 8 characters"></div>
       <div class="form-group"><label>Phone</label><input type="tel" id="signupPhone" placeholder="+91 98765 43210"></div>
-      <button class="btn-primary full-width" onclick="handleSignup()">Create Account</button>
+      <button class="btn-primary full-width" onclick="handleSignup()">Create My Account →</button>
+      <p style="text-align:center;font-size:13px;margin-top:20px;color:var(--text-muted)">
+        Already have an account? <span class="link" onclick="switchAuth('login')">Sign in</span>
+      </p>
     </div>
   </div>
 </div>
@@ -1437,8 +1489,8 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
       <li><a href="#" onclick="openAdminPanel(); return false;">Admin</a></li>
     </ul>
     <div class="nav-actions">
-      <button class="btn-outline" onclick="openModal('authModal')" id="loginBtn">Sign In</button>
-      <button class="btn-primary" onclick="openModal('authModal')">Book Now</button>
+      <button class="btn-outline" onclick="openAuthModal('login')" id="loginBtn">Sign In</button>
+      <button class="btn-primary" onclick="openAuthModal('signup')">Sign Up</button>
       <div class="user-menu hidden" id="userMenu">
         <button class="user-avatar" onclick="toggleUserDropdown()">
           <span id="userInitial">J</span>
@@ -1944,11 +1996,7 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
         <p>Your trusted travel partner for unforgettable journeys across India and beyond.</p>
         <div class="social-links">
           <a href="#" onclick="showToast('Opening Facebook...')">Facebook</a>
-          <a href="https://www.instagram.com/akas_h13141/" 
-   target="_blank" 
-   onclick="showToast('Opening Instagram...')">
-  Instagram
-</a>
+          <a href="https://www.instagram.com/akas_h13141/" target="_blank" onclick="showToast('Opening Instagram...')">Instagram</a>
           <a href="#" onclick="showToast('Opening Twitter...')">Twitter</a>
         </div>
       </div>
@@ -2004,7 +2052,6 @@ const App = {
   slideIndex: 0,
 };
 
-// Safe localStorage helpers
 function lsGet(key, fallback) {
   try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch(e) { return fallback; }
 }
@@ -2170,14 +2217,6 @@ function performSearch(type) {
   renderResults(results);
 }
 
-// ===== SAFE JSON SERIALIZE for inline onclick =====
-function safeJson(obj) {
-  return JSON.stringify(obj)
-    .replace(/\\/g, '\\\\')
-    .replace(/'/g, "\\'")
-    .replace(/"/g, '&quot;');
-}
-
 function renderResults(results) {
   const grid = document.getElementById('resultsGrid');
   grid.innerHTML = '';
@@ -2187,7 +2226,6 @@ function renderResults(results) {
     return;
   }
 
-  // Store results globally for onclick access
   window._resultItems = results;
 
   results.forEach((item, idx) => {
@@ -2374,8 +2412,8 @@ function openWishlist() {
 // ===== BOOKING FLOW =====
 function startBooking(type, item) {
   if (!App.currentUser) {
-    showToast('Please sign in to book');
-    openModal('authModal');
+    showToast('Please create an account or sign in to book');
+    openAuthModal('signup');
     return;
   }
   App.currentBooking = { type, item, step: 1, selectedSeats: [], seats: [] };
@@ -2676,35 +2714,83 @@ function nextBookingStep() {
   }
 }
 
-// ===== AUTH =====
+// ===== AUTH — SIGNUP-FIRST ENFORCEMENT =====
 function openModal(id) { document.getElementById(id)?.classList.remove('hidden'); }
 function closeModal(id) { document.getElementById(id)?.classList.add('hidden'); }
 
-function switchAuth(mode) {
-  document.querySelectorAll('.auth-tab').forEach((t, i) => t.classList.toggle('active', (i === 0) === (mode === 'login')));
-  document.getElementById('loginForm').classList.toggle('hidden', mode !== 'login');
-  document.getElementById('signupForm').classList.toggle('hidden', mode !== 'signup');
+// Opens auth modal and switches to the correct tab
+function openAuthModal(mode) {
+  // Clear previous messages
+  hideAuthMessages();
+  openModal('authModal');
+  switchAuth(mode || 'signup');
 }
 
+function hideAuthMessages() {
+  ['loginError', 'signupError', 'signupSuccess'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('hidden');
+  });
+}
+
+function showAuthError(formType, message) {
+  const errEl = document.getElementById(formType + 'Error');
+  const msgEl = document.getElementById(formType + 'ErrorMsg');
+  if (errEl) errEl.classList.remove('hidden');
+  if (msgEl) msgEl.textContent = message;
+}
+
+function switchAuth(mode) {
+  hideAuthMessages();
+  const loginTab = document.getElementById('loginTab');
+  const signupTab = document.getElementById('signupTab');
+  const loginForm = document.getElementById('loginForm');
+  const signupForm = document.getElementById('signupForm');
+
+  if (mode === 'login') {
+    loginTab.classList.add('active');
+    signupTab.classList.remove('active');
+    loginForm.classList.remove('hidden');
+    signupForm.classList.add('hidden');
+  } else {
+    signupTab.classList.add('active');
+    loginTab.classList.remove('active');
+    signupForm.classList.remove('hidden');
+    loginForm.classList.add('hidden');
+  }
+}
+
+// ===== LOGIN — checks if account exists first =====
 function handleLogin() {
   const email = document.getElementById('loginEmail').value.trim();
   const password = document.getElementById('loginPassword').value;
-  if (!email || !password) { showToast('Please fill in all fields'); return; }
-  
-  // Try local users first
-  const found = App.users.find(u => u.email === email);
-  if (found) {
-    loginUser(found);
+
+  if (!email || !password) {
+    showAuthError('login', 'Please enter your email and password.');
     return;
   }
 
-  // Demo fallback — works offline without backend
-  const demoUser = { id: Date.now(), name: email.split('@')[0], email, phone: '', role: 'user' };
-  loginUser(demoUser);
-}
-function handleSignup() {
-  console.log("Signup clicked");
+  // Check if user has a registered account
+  const registeredUser = App.users.find(u => u.email.toLowerCase() === email.toLowerCase());
 
+  if (!registeredUser) {
+    // No account found — redirect to signup
+    showAuthError('login', 'No account found with this email. Please sign up first.');
+    // After a short delay, switch to signup and pre-fill the email
+    setTimeout(() => {
+      switchAuth('signup');
+      const signupEmailEl = document.getElementById('signupEmail');
+      if (signupEmailEl) signupEmailEl.value = email;
+    }, 1800);
+    return;
+  }
+
+  // Account exists — log them in
+  loginUser(registeredUser);
+}
+
+// ===== SIGNUP — creates account then logs in =====
+function handleSignup() {
   const firstName = document.getElementById('signupFirst').value.trim();
   const lastName = document.getElementById('signupLast').value.trim();
   const email = document.getElementById('signupEmail').value.trim();
@@ -2712,53 +2798,81 @@ function handleSignup() {
   const phone = document.getElementById('signupPhone').value.trim();
 
   if (!firstName || !email || !password) {
-    showToast('Please fill all required fields');
+    showAuthError('signup', 'Please fill in all required fields (marked with *).');
+    return;
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showAuthError('signup', 'Please enter a valid email address.');
     return;
   }
 
   if (password.length < 8) {
-    showToast('Password must be at least 8 characters');
+    showAuthError('signup', 'Password must be at least 8 characters long.');
     return;
   }
 
-  fetch("https://gojourney-production.up.railway.app/api/auth/register", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
+  // Check if email already registered
+  const existing = App.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+  if (existing) {
+    showAuthError('signup', 'An account with this email already exists. Please sign in instead.');
+    setTimeout(() => {
+      switchAuth('login');
+      const loginEmailEl = document.getElementById('loginEmail');
+      if (loginEmailEl) loginEmailEl.value = email;
+    }, 1800);
+    return;
+  }
+
+  // Try backend registration
+  fetch('https://gojourney-production.up.railway.app/api/auth/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       name: firstName + (lastName ? ' ' + lastName : ''),
-      email: email,
-      password: password,
-      phone: phone
+      email,
+      password,
+      phone
     })
   })
   .then(res => res.json())
   .then(data => {
-    console.log(data);
-
     if (data.error) {
-      showToast(data.error);
+      showAuthError('signup', data.error);
       return;
     }
-
-    showToast("Signup successful 🎉");
-
-    localStorage.setItem("token", data.token);
-
-    loginUser({
-      name: data.user.name,
-      email: data.user.email
-    });
+    if (data.token) localStorage.setItem('gj_token', data.token);
+    completeSignup({ name: data.user?.name || firstName + (lastName ? ' ' + lastName : ''), email, phone, role: 'user' });
   })
-  .catch(err => {
-    console.error(err);
-    showToast("Signup failed ❌");
+  .catch(() => {
+    // Backend unavailable — register locally
+    completeSignup({ id: Date.now(), name: firstName + (lastName ? ' ' + lastName : ''), email, phone, role: 'user' });
   });
+}
+
+function completeSignup(newUser) {
+  // Save to local users store
+  App.users.push(newUser);
+  lsSet('gj_users', App.users);
+
+  // Show success briefly then log in
+  const successEl = document.getElementById('signupSuccess');
+  if (successEl) successEl.classList.remove('hidden');
+
+  setTimeout(() => {
+    closeModal('authModal');
+    loginUser(newUser);
+  }, 1000);
 }
 
 function socialLogin(provider) {
   const demoUser = { id: Date.now(), name: provider + ' User', email: 'user@' + provider.toLowerCase() + '.com', phone: '', role: 'user' };
+  // Also register this social user
+  const existing = App.users.find(u => u.email === demoUser.email);
+  if (!existing) {
+    App.users.push(demoUser);
+    lsSet('gj_users', App.users);
+  }
   loginUser(demoUser);
 }
 
@@ -2781,6 +2895,7 @@ function updateAuthUI() {
   const loginBtn = document.getElementById('loginBtn');
   const userMenu = document.getElementById('userMenu');
   const userInitial = document.getElementById('userInitial');
+  // The "Book Now" button in nav always shows
   if (App.currentUser) {
     loginBtn?.classList.add('hidden');
     userMenu?.classList.remove('hidden');
@@ -2793,7 +2908,7 @@ function updateAuthUI() {
 
 // ===== DASHBOARD =====
 function openDashboard() {
-  if (!App.currentUser) { openModal('authModal'); return; }
+  if (!App.currentUser) { openAuthModal('signup'); return; }
   const userBookings = App.bookings.filter(b => b.user === App.currentUser.email);
   const modal = document.getElementById('dashboardModal');
   const content = document.getElementById('dashboardContent');
@@ -2932,7 +3047,7 @@ function switchAdminTab(tab, btn) {
       </div>`;
   } else if (tab === 'users') {
     body.innerHTML = `
-      <h3 style="margin-bottom:16px">Users (${App.users.length})</h3>
+      <h3 style="margin-bottom:16px">Registered Users (${App.users.length})</h3>
       <div style="overflow-x:auto">
         <table class="admin-table">
           <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Actions</th></tr></thead>
@@ -2944,7 +3059,7 @@ function switchAdminTab(tab, btn) {
                 <td>${u.phone || '-'}</td>
                 <td><span style="background:var(--light);color:var(--primary);padding:2px 8px;border-radius:20px;font-size:11px">${u.role || 'user'}</span></td>
                 <td><button onclick="showToast('User management coming soon!')" style="font-size:11px;background:var(--light);color:var(--primary);padding:4px 8px;border-radius:4px;border:1px solid var(--border);cursor:pointer">Edit</button></td>
-              </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted)">No users</td></tr>'}
+              </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted)">No users registered yet</td></tr>'}
           </tbody>
         </table>
       </div>`;
@@ -3105,6 +3220,6 @@ function init() {
 document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
-<script src="app.js"></script>
 
+<script src="app.js"></script>
 </html>
