@@ -1,7 +1,7 @@
 console.log("App.js loaded 🚀");
 
 // ================= GLOBAL APP STATE =================
-windows.App = {
+window.App = {
   currentUser: null
 };
 
@@ -12,7 +12,7 @@ function showToast(msg) {
 
 // ================= LOGIN =================
 function loginUser(user) {
-  App.currentUser = user;
+  window.App.currentUser = user;
   localStorage.setItem("user", JSON.stringify(user));
 }
 
