@@ -2712,12 +2712,41 @@ function handleSignup() {
 
   if (!firstName || !email || !password) { showToast('Please fill all required fields'); return; }
   if (password.length < 8) { showToast('Password must be at least 8 characters'); return; }
-  if (App.users.find(u => u.email === email)) { showToast('Email already registered'); return; }
+  fetch("https://gojourney-production.up.railway.app/api/auth/register", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    name: firstName + (lastName ? ' ' + lastName : ''),
+    email: email,
+    password: password,
+    phone: phone
+  })
+})
+.then(res => res.json())
+.then(data => {
+  console.log(data);
 
-  const newUser = { id: Date.now(), name: firstName + (lastName ? ' ' + lastName : ''), email, phone, role: 'user' };
-  App.users.push(newUser);
-  lsSet('gj_users', App.users);
-  loginUser(newUser);
+  if (data.error) {
+    showToast(data.error);
+    return;
+  }
+
+  showToast("Signup successful 🎉");
+
+  // optional login
+  localStorage.setItem("token", data.token);
+
+  loginUser({
+    name: data.user.name,
+    email: data.user.email
+  });
+})
+.catch(err => {
+  console.error(err);
+  showToast("Signup failed ❌");
+});
 }
 
 function socialLogin(provider) {
