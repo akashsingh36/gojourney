@@ -3059,7 +3059,7 @@ function switchAdminTab(tab, btn) {
                 <td>${u.phone || '-'}</td>
                 <td><span style="background:var(--light);color:var(--primary);padding:2px 8px;border-radius:20px;font-size:11px">${u.role || 'user'}</span></td>
                 <td>
-  <button onclick="deleteUser('${u.email}')"
+  <button onclick="deleteUser('${u.id}')"
     style="font-size:11px;background:red;color:white;padding:4px 8px;border-radius:6px;">
     Delete
   </button>

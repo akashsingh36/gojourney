@@ -238,7 +238,7 @@ app.patch('/api/admin/users/:id', authMiddleware, adminMiddleware, async (req, r
   res.json(user);
 });
 
-app.delete('/api/admin/users/:email', authMiddleware, adminMiddleware, async (req, res) => {
+app.delete('/api/admin/users/:id', authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const email = req.params.email;
 
