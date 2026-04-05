@@ -148,6 +148,30 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
 }
 .navbar.scrolled .btn-outline { color: var(--primary); border-color: var(--primary); }
 .navbar .btn-primary { padding: 8px 20px; font-size: 13px; }
+.btn-signout {
+  background: transparent;
+  color: white;
+  border: 2px solid rgba(255,255,255,0.6);
+  padding: 8px 20px;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 13px;
+  transition: var(--transition);
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  letter-spacing: 0.2px;
+}
+.btn-signout:hover {
+  background: rgba(255,255,255,0.15);
+  border-color: white;
+}
+.navbar.scrolled .btn-signout {
+  color: #dc2626;
+  border-color: #dc2626;
+}
+.navbar.scrolled .btn-signout:hover {
+  background: #fee2e2;
+}
 
 .user-avatar {
   width: 36px; height: 36px;
@@ -1490,17 +1514,18 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
     </ul>
     <div class="nav-actions">
       <button class="btn-outline" onclick="openAuthModal('login')" id="loginBtn">Sign In</button>
-      <button class="btn-primary" onclick="openAuthModal('signup')">Sign Up</button>
+      <button class="btn-primary" onclick="openAuthModal('signup')" id="signupBtn">Sign Up</button>
       <div class="user-menu hidden" id="userMenu">
         <button class="user-avatar" onclick="toggleUserDropdown()">
           <span id="userInitial">J</span>
         </button>
         <div class="user-dropdown hidden" id="userDropdown">
-          <a href="#" onclick="openDashboard(); return false;">My Bookings</a>
-          <a href="#" onclick="openWishlist(); return false;">Wishlist</a>
-          <a href="#" onclick="logout(); return false;">Logout</a>
+          <a href="#" onclick="openDashboard(); return false;">👤 My Bookings</a>
+          <a href="#" onclick="openWishlist(); return false;">❤️ Wishlist</a>
+          <a href="#" onclick="logout(); return false;" style="color:#dc2626;">🚪 Sign Out</a>
         </div>
       </div>
+      <button class="btn-signout hidden" id="signoutBtn" onclick="logout()">🚪 Sign Out</button>
       <button class="hamburger" onclick="toggleMenu()" id="hamburger">☰</button>
     </div>
   </div>
@@ -2905,15 +2930,23 @@ function logout() {
 
 function updateAuthUI() {
   const loginBtn = document.getElementById('loginBtn');
+  const signupBtn = document.getElementById('signupBtn');
+  const signoutBtn = document.getElementById('signoutBtn');
   const userMenu = document.getElementById('userMenu');
   const userInitial = document.getElementById('userInitial');
-  // The "Book Now" button in nav always shows
+
   if (App.currentUser) {
+    // Logged in: hide Sign In + Sign Up, show avatar menu + Sign Out button
     loginBtn?.classList.add('hidden');
+    signupBtn?.classList.add('hidden');
+    signoutBtn?.classList.remove('hidden');
     userMenu?.classList.remove('hidden');
     if (userInitial) userInitial.textContent = App.currentUser.name.charAt(0).toUpperCase();
   } else {
+    // Logged out: show Sign In + Sign Up, hide avatar menu + Sign Out button
     loginBtn?.classList.remove('hidden');
+    signupBtn?.classList.remove('hidden');
+    signoutBtn?.classList.add('hidden');
     userMenu?.classList.add('hidden');
   }
 }
