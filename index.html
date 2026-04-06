@@ -1789,13 +1789,32 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
       <div class="tab-content hidden" id="tab-shuttle">
         <div class="search-row">
           <div class="search-field">
-            <label>Route</label>
-            <select id="shuttleRoute">
-              <option>Airport ↔ City Center</option>
-              <option>Railway Station ↔ City</option>
-              <option>City ↔ Tech Park</option>
-              <option>Suburb ↔ Metro Station</option>
-            </select>
+            <label>From (City / Area)</label>
+            <input type="text" id="shuttleFrom" placeholder="e.g. Delhi Airport, Mumbai CST" list="shuttle-from-list">
+            <datalist id="shuttle-from-list">
+              <option value="Indira Gandhi International Airport, Delhi">
+              <option value="Chhatrapati Shivaji Terminus, Mumbai">
+              <option value="Kempegowda International Airport, Bangalore">
+              <option value="Chennai Central Station">
+              <option value="Hyderabad Rajiv Gandhi Airport">
+              <option value="Pune Railway Station">
+              <option value="Jaipur Airport">
+              <option value="Ahmedabad Airport">
+            </datalist>
+          </div>
+          <div class="search-field">
+            <label>To (City / Area)</label>
+            <input type="text" id="shuttleTo" placeholder="e.g. Connaught Place, Bandra" list="shuttle-to-list">
+            <datalist id="shuttle-to-list">
+              <option value="Connaught Place, Delhi">
+              <option value="Bandra, Mumbai">
+              <option value="MG Road, Bangalore">
+              <option value="T. Nagar, Chennai">
+              <option value="Hitech City, Hyderabad">
+              <option value="Koregaon Park, Pune">
+              <option value="Vaishali Nagar, Jaipur">
+              <option value="Navrangpura, Ahmedabad">
+            </datalist>
           </div>
           <div class="search-field">
             <label>Date</label>
@@ -2215,24 +2234,122 @@ const HOTELS = [
 ];
 
 const CABS = [
-  { id: 'c1', name: 'Mini (Hatchback)', vehicle: 'Swift / WagonR', capacity: 4, pricePerKm: 12, price: 12, minFare: 299, img: '🚗', badge: 'Best Value', features: ['AC', 'GPS', 'Music'], type: 'cab' },
-  { id: 'c2', name: 'Sedan', vehicle: 'Dzire / Xcent', capacity: 4, pricePerKm: 15, price: 15, minFare: 399, img: '🚙', badge: 'Popular', features: ['AC', 'GPS', 'USB Charging'], type: 'cab' },
-  { id: 'c3', name: 'SUV', vehicle: 'Innova / Ertiga', capacity: 7, pricePerKm: 20, price: 20, minFare: 599, img: '🚐', badge: 'Family', features: ['AC', 'GPS', 'WiFi Hotspot', 'Extra Luggage'], type: 'cab' },
-  { id: 'c4', name: 'Tempo Traveller', vehicle: '12-Seater', capacity: 12, pricePerKm: 30, price: 30, minFare: 999, img: '🚌', badge: 'Group', features: ['AC', 'GPS', 'Reclining Seats', 'Charging Points'], type: 'cab' },
+  { id: 'c1', name: 'Mini (Hatchback)', vehicle: 'Swift / WagonR / Alto', capacity: 4, pricePerKm: 11, price: 11, minFare: 249, img: '🚗', badge: 'Best Value', features: ['AC', 'GPS Tracked', 'Insured'], type: 'cab', companies: ['Ola Mini', 'Uber Go', 'Rapido Cab', 'inDrive Mini', 'Meru Mini'] },
+  { id: 'c2', name: 'Sedan / Prime', vehicle: 'Dzire / Xcent / Amaze', capacity: 4, pricePerKm: 14, price: 14, minFare: 349, img: '🚙', badge: 'Popular', features: ['AC', 'GPS', 'USB Charging'], type: 'cab', companies: ['Ola Prime', 'Uber Premier', 'Savaari Sedan', 'Meru Sedan', 'inDrive Prime'] },
+  { id: 'c3', name: 'SUV / Ertiga', vehicle: 'Innova / Ertiga / Crysta', capacity: 7, pricePerKm: 18, price: 18, minFare: 549, img: '🚐', badge: 'Family Pick', features: ['AC', 'GPS', 'WiFi Hotspot', 'Extra Boot Space'], type: 'cab', companies: ['Ola SUV', 'Uber XL', 'Savaari SUV', 'Ixigo Cabs', 'Zoom Car SUV'] },
+  { id: 'c4', name: 'Luxury / Premium', vehicle: 'Camry / Fortuner / BMW', capacity: 4, pricePerKm: 28, price: 28, minFare: 999, img: '🏎️', badge: 'Premium', features: ['AC', 'GPS', 'Complimentary Water', 'WiFi', 'Professional Driver'], type: 'cab', companies: ['Ola Lux', 'Uber Black', 'Meru Black', 'Avis India', 'Hertz India'] },
+  { id: 'c5', name: 'Tempo Traveller', vehicle: '12/16-Seater Tempo', capacity: 16, pricePerKm: 25, price: 25, minFare: 1499, img: '🚌', badge: 'Group Trip', features: ['AC', 'GPS', 'Reclining Seats', 'Multiple Charging Points', 'Luggage Space'], type: 'cab', companies: ['Ola Outstation', 'Savaari Tempo', 'Ixigo Group', 'Holiday Cabs', 'TravClan'] },
 ];
 
-const BUSES = [
-  { id: 'b1', name: 'Sharma Transport', route: 'Delhi → Manali', departure: '22:00', arrival: '08:30', duration: '10h 30m', type: 'bus', price: 1200, seats: 36, available: 12, rating: 4.5 },
-  { id: 'b2', name: 'Raj Travels', route: 'Mumbai → Goa', departure: '18:00', arrival: '07:00', duration: '13h', type: 'bus', price: 950, seats: 40, available: 8, rating: 4.3 },
-  { id: 'b3', name: 'KPN Travels', route: 'Bangalore → Ooty', departure: '23:30', arrival: '05:30', duration: '6h', type: 'bus', price: 650, seats: 44, available: 20, rating: 4.6 },
-  { id: 'b4', name: 'Orange Tours', route: 'Jaipur → Delhi', departure: '06:00', arrival: '12:00', duration: '6h', type: 'bus', price: 550, seats: 44, available: 30, rating: 4.2 },
+// Real bus operators in India – used to dynamically generate results for any route
+const BUS_OPERATORS = [
+  { name: 'RedBus / Abhibus', rating: 4.5, types: ['Sleeper AC', 'Volvo AC', 'Seater AC'], priceMultiplier: 1.2, badge: 'Top Rated' },
+  { name: 'VRL Travels', rating: 4.6, types: ['Sleeper AC', 'Volvo B11R', 'Multi-Axle AC'], priceMultiplier: 1.3, badge: 'Premium' },
+  { name: 'SRS Travels', rating: 4.4, types: ['Sleeper AC', 'Semi-Sleeper', 'Seater'], priceMultiplier: 1.1, badge: 'Popular' },
+  { name: 'KSRTC / MSRTC / UPSRTC', rating: 4.3, types: ['Ordinary', 'Express', 'Volvo AC'], priceMultiplier: 0.8, badge: 'Government' },
+  { name: 'Sharma Transports', rating: 4.2, types: ['Sleeper Non-AC', 'Semi-Sleeper', 'Seater'], priceMultiplier: 0.9, badge: 'Budget' },
+  { name: 'Orange Travels', rating: 4.5, types: ['Volvo AC', 'Multi-Axle', 'Sleeper AC'], priceMultiplier: 1.25, badge: 'Luxury' },
+  { name: 'Raj National Express', rating: 4.1, types: ['Sleeper Non-AC', 'Seater', 'Express'], priceMultiplier: 0.85, badge: 'Economy' },
+  { name: 'National Travels', rating: 4.3, types: ['Sleeper AC', 'Semi-Sleeper AC', 'Seater'], priceMultiplier: 1.0, badge: 'Reliable' },
+  { name: 'KPN Travels', rating: 4.6, types: ['Volvo Multi-Axle', 'Sleeper AC', 'Push-back'], priceMultiplier: 1.2, badge: 'South India Specialist' },
+  { name: 'Parveen Travels', rating: 4.4, types: ['Sleeper AC', 'Volvo 9400', 'Semi-Sleeper'], priceMultiplier: 1.15, badge: 'Trusted' },
+  { name: 'Paulo Travels', rating: 4.5, types: ['Sleeper AC', 'Volvo', 'Luxury Coach'], priceMultiplier: 1.3, badge: 'Goa Specialist' },
+  { name: 'Neeta Travels', rating: 4.2, types: ['Sleeper AC', 'Non-AC Sleeper', 'Seater'], priceMultiplier: 0.95, badge: 'Economical' },
 ];
+
+// Shuttle operators by city
+const SHUTTLE_OPERATORS = [
+  { name: 'Shuttl', cities: ['Delhi', 'Gurugram', 'Noida', 'Faridabad'], pricePerKm: 8, features: ['AC', 'Fixed Stops', 'App Tracked'] },
+  { name: 'Chalo Shuttle', cities: ['Mumbai', 'Pune', 'Ahmedabad', 'Surat'], pricePerKm: 9, features: ['AC', 'Real-time Tracking', 'Cashless'] },
+  { name: 'CitiFlo', cities: ['Mumbai', 'Navi Mumbai', 'Thane'], pricePerKm: 10, features: ['AC', 'WiFi', 'App Booking'] },
+  { name: 'IntrCity SmartBus', cities: ['Delhi', 'Lucknow', 'Kanpur', 'Agra', 'Jaipur'], pricePerKm: 7, features: ['AC', 'GPS', 'Comfortable Seats'] },
+  { name: 'Zipgo', cities: ['Bangalore', 'Hyderabad', 'Chennai', 'Pune'], pricePerKm: 9, features: ['AC', 'WiFi', 'Recliner Seats'] },
+  { name: 'AHA Taxis Shuttle', cities: ['Bangalore', 'Mysore'], pricePerKm: 10, features: ['AC', 'Door Pickup', 'Real-time'] },
+  { name: 'Airport Express Shuttle', cities: ['Delhi', 'Mumbai', 'Bangalore', 'Chennai', 'Hyderabad', 'Kolkata', 'Pune', 'Jaipur', 'Ahmedabad', 'Kochi'], pricePerKm: 12, features: ['AC', 'Luggage Rack', 'Fixed Schedule', 'Airport Specialist'] },
+  { name: 'City Link Bus', cities: ['all'], pricePerKm: 6, features: ['AC', 'Fixed Route', 'Affordable'] },
+  { name: 'MoveInSync Corporate Shuttle', cities: ['all'], pricePerKm: 11, features: ['AC', 'Corporate Grade', 'GPS Tracked', 'Insured'] },
+  { name: 'Olacabs Shuttle', cities: ['all'], pricePerKm: 10, features: ['AC', 'App Tracked', 'Easy Cancel'] },
+];
+
+function generateBusResults(from, to, dist, busType, busDate) {
+  const baseKmRate = 2.5; // ₹2.5/km base for buses
+  const times = ['06:00','07:30','09:00','10:30','14:00','16:30','19:00','20:30','21:30','22:00','22:30','23:00','23:30'];
+  // Pick 5-7 operators randomly but deterministically based on route
+  const seed = (from + to).split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+  const shuffled = BUS_OPERATORS.slice().sort((a,b) => ((seed * a.name.charCodeAt(0)) % 7) - ((seed * b.name.charCodeAt(0)) % 7));
+  const selected = shuffled.slice(0, 6);
+  return selected.map((op, i) => {
+    const busTypeStr = busType && busType !== 'All Types' ? busType : op.types[i % op.types.length];
+    const durationHr = Math.round(dist / 60);
+    const deptTime = times[(seed + i * 3) % times.length];
+    const [dh, dm] = deptTime.split(':').map(Number);
+    const arrivalHr = (dh + durationHr) % 24;
+    const arrivalTime = String(arrivalHr).padStart(2,'0') + ':' + String(dm).padStart(2,'0');
+    const basePrice = Math.round(dist * baseKmRate * op.priceMultiplier);
+    const seats = [32, 36, 40, 44, 48][i % 5];
+    const avail = Math.floor(Math.random() * 20) + 2;
+    return {
+      id: 'b_' + i + '_' + seed,
+      name: op.name,
+      busType: busTypeStr,
+      route: (from || 'Origin') + ' → ' + (to || 'Destination'),
+      departure: deptTime,
+      arrival: arrivalTime,
+      duration: durationHr + 'h ' + (dist % 60 > 0 ? Math.round(dist % 60 / 10) * 10 + 'm' : ''),
+      type: 'bus',
+      price: Math.max(199, basePrice),
+      seats,
+      available: avail,
+      rating: op.rating,
+      badge: op.badge,
+      features: [busTypeStr, op.badge],
+      from, to, date: busDate,
+      distanceKm: dist,
+    };
+  });
+}
+
+function generateShuttleResults(from, to, dist, date) {
+  const basePassengers = 1;
+  const fromLower = (from || '').toLowerCase();
+  const toLower = (to || '').toLowerCase();
+  const cityNames = ['Delhi','Mumbai','Bangalore','Chennai','Hyderabad','Pune','Kolkata','Jaipur','Ahmedabad','Kochi','Noida','Gurugram'];
+  const detectedCity = cityNames.find(c => fromLower.includes(c.toLowerCase()) || toLower.includes(c.toLowerCase())) || '';
+
+  const relevantOps = SHUTTLE_OPERATORS.filter(op =>
+    op.cities.includes('all') ||
+    op.cities.some(c => fromLower.includes(c.toLowerCase()) || toLower.includes(c.toLowerCase()) || detectedCity.toLowerCase() === c.toLowerCase())
+  );
+  const ops = relevantOps.length >= 3 ? relevantOps : [...relevantOps, ...SHUTTLE_OPERATORS.filter(o => o.cities.includes('all'))].slice(0, 5);
+  const frequencies = ['Every 15 mins', 'Every 20 mins', 'Every 30 mins', 'Every 45 mins', 'Hourly'];
+  const timings = ['05:00 – 23:00', '06:00 – 22:00', '05:30 – 22:30', '06:30 – 21:30'];
+  return ops.slice(0, 5).map((op, i) => ({
+    id: 'sh_' + i,
+    name: op.name,
+    route: (from || 'Origin') + ' ↔ ' + (to || 'Destination'),
+    timing: timings[i % timings.length],
+    frequency: frequencies[i % frequencies.length],
+    price: Math.max(49, Math.round(dist * op.pricePerKm)),
+    capacity: [8, 12, 16, 20, 24][i % 5],
+    features: op.features,
+    type: 'shuttle',
+    from, to, date, distanceKm: dist,
+  }));
+}
+
+const BUSES = []; // No longer used statically — dynamically generated
 
 const TOURS = [
-  { id: 't1', title: 'Goa Beach Paradise', duration: '4D/3N', price: 7999, location: 'Goa', rating: 4.8, reviews: 521, highlights: ['Beach Shacks', 'Water Sports', 'Nightlife', 'Old Goa Church'], img: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=600&auto=format&fit=crop', itinerary: ['Arrival & North Goa beaches', 'Water sports & Calangute', 'South Goa & Heritage tour', 'Departure'], type: 'tour' },
-  { id: 't2', title: 'Kerala Backwaters Retreat', duration: '5D/4N', price: 12499, location: 'Kerala', rating: 4.9, reviews: 743, highlights: ['Houseboat Stay', 'Alleppey Backwaters', 'Munnar Tea Gardens', 'Thekkady Wildlife'], img: 'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?w=600&auto=format&fit=crop', itinerary: ['Cochin arrival & fort tour', 'Alleppey houseboat', 'Munnar tea gardens', 'Thekkady wildlife', 'Departure'], type: 'tour' },
-  { id: 't3', title: 'Rajasthan Royal Heritage', duration: '7D/6N', price: 18999, location: 'Rajasthan', rating: 4.7, reviews: 412, highlights: ['Jaipur Forts', 'Camel Safari', 'Udaipur Lakes', 'Jodhpur Blue City'], img: 'https://images.unsplash.com/photo-1599661046289-e31897846e41?w=600&auto=format&fit=crop', itinerary: ['Jaipur – Amber Fort', 'Jodhpur – Mehrangarh', 'Jaisalmer & camel safari', 'Desert camp', 'Udaipur arrival', 'City Palace & lakes', 'Departure'], type: 'tour' },
-  { id: 't4', title: 'Manali Snow Adventure', duration: '5D/4N', price: 9999, location: 'Himachal Pradesh', rating: 4.6, reviews: 331, highlights: ['Rohtang Pass', 'Snow Activities', 'Solang Valley', 'River Rafting'], img: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=600&auto=format&fit=crop', itinerary: ['Delhi departure & overnight bus', 'Manali arrival & Mall Road', 'Rohtang Pass snow', 'Solang Valley & rafting', 'Departure'], type: 'tour' },
+  { id: 't1', title: 'Goa Beach Paradise', duration: '4D/3N', price: 7999, location: 'Goa', rating: 4.8, reviews: 521, highlights: ['Beach Shacks', 'Water Sports', 'Nightlife', 'Old Goa Church'], img: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=600&auto=format&fit=crop', itinerary: ['Arrival & North Goa beaches', 'Water sports & Calangute', 'South Goa & Heritage tour', 'Departure'], type: 'tour', searchTags: ['goa','beach','sea','coastal'] },
+  { id: 't2', title: 'Kerala Backwaters Retreat', duration: '5D/4N', price: 12499, location: 'Kerala', rating: 4.9, reviews: 743, highlights: ['Houseboat Stay', 'Alleppey Backwaters', 'Munnar Tea Gardens', 'Thekkady Wildlife'], img: 'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?w=600&auto=format&fit=crop', itinerary: ['Cochin arrival & fort tour', 'Alleppey houseboat', 'Munnar tea gardens', 'Thekkady wildlife', 'Departure'], type: 'tour', searchTags: ['kerala','backwaters','munnar','thekkady','alleppey','cochin'] },
+  { id: 't3', title: 'Rajasthan Royal Heritage', duration: '7D/6N', price: 18999, location: 'Rajasthan', rating: 4.7, reviews: 412, highlights: ['Jaipur Forts', 'Camel Safari', 'Udaipur Lakes', 'Jodhpur Blue City'], img: 'https://images.unsplash.com/photo-1599661046289-e31897846e41?w=600&auto=format&fit=crop', itinerary: ['Jaipur – Amber Fort', 'Jodhpur – Mehrangarh', 'Jaisalmer & camel safari', 'Desert camp', 'Udaipur arrival', 'City Palace & lakes', 'Departure'], type: 'tour', searchTags: ['rajasthan','jaipur','udaipur','jodhpur','jaisalmer','desert','forts'] },
+  { id: 't4', title: 'Manali Snow Adventure', duration: '5D/4N', price: 9999, location: 'Himachal Pradesh', rating: 4.6, reviews: 331, highlights: ['Rohtang Pass', 'Snow Activities', 'Solang Valley', 'River Rafting'], img: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=600&auto=format&fit=crop', itinerary: ['Delhi departure & overnight bus', 'Manali arrival & Mall Road', 'Rohtang Pass snow', 'Solang Valley & rafting', 'Departure'], type: 'tour', searchTags: ['manali','snow','himachal','rohtang','mountains','himalayas'] },
+  { id: 't5', title: 'Lonavala Hill Station Escape', duration: '2D/1N', price: 3499, location: 'Lonavala', rating: 4.5, reviews: 289, highlights: ['Bhushi Dam', 'Tiger\'s Leap', 'Kune Falls', 'Pawna Lake'], img: 'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=600&auto=format&fit=crop', itinerary: ['Arrival & Bhushi Dam visit', 'Tiger\'s Leap, Kune Falls & Pawna Lake', 'Sunrise at Lohagad Fort & Departure'], type: 'tour', searchTags: ['lonavala','lonavla','pune','mumbai hills','bhushi','pawna','khandala','hill station'] },
+  { id: 't6', title: 'Lonavala–Khandala Weekend Getaway', duration: '3D/2N', price: 5499, location: 'Lonavala', rating: 4.6, reviews: 178, highlights: ['Khandala Ghat', 'Rajmachi Fort Trek', 'Imagica Theme Park', 'Chikki & Fudge Shopping'], img: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&auto=format&fit=crop', itinerary: ['Pune/Mumbai pickup, Khandala viewpoint', 'Rajmachi Fort trek & waterfall hike', 'Imagica / Della Adventure & departure'], type: 'tour', searchTags: ['lonavala','khandala','pune','western ghats','trek','adventure','imagica'] },
+  { id: 't7', title: 'Shimla–Manali Combo Tour', duration: '7D/6N', price: 14999, location: 'Shimla', rating: 4.7, reviews: 402, highlights: ['Mall Road Shimla', 'Kufri Snow Point', 'Rohtang Pass', 'Hadimba Temple'], img: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=600&auto=format&fit=crop', itinerary: ['Delhi to Shimla', 'Mall Road & Kufri', 'Shimla to Manali', 'Rohtang Pass', 'Solang Valley', 'Old Manali & market', 'Departure'], type: 'tour', searchTags: ['shimla','manali','himachal','kufri','snow','mountains'] },
+  { id: 't8', title: 'Andaman Island Explorer', duration: '6D/5N', price: 22999, location: 'Andaman & Nicobar', rating: 4.9, reviews: 512, highlights: ['Radhanagar Beach', 'Cellular Jail', 'Scuba Diving', 'Ross Island'], img: 'https://images.unsplash.com/photo-1559628376-f3fe5f782a2e?w=600&auto=format&fit=crop', itinerary: ['Port Blair arrival & Cellular Jail', 'Ross Island & North Bay', 'Havelock – Radhanagar Beach', 'Scuba diving / snorkeling', 'Neil Island excursion', 'Departure'], type: 'tour', searchTags: ['andaman','nicobar','island','beach','scuba','diving','havelock','port blair'] },
+  { id: 't9', title: 'Varanasi Spiritual Journey', duration: '3D/2N', price: 6499, location: 'Varanasi', rating: 4.8, reviews: 634, highlights: ['Ganga Aarti', 'Kashi Vishwanath', 'Sarnath', 'Boat Ride at Sunrise'], img: 'https://images.unsplash.com/photo-1561361058-c24cecae35ca?w=600&auto=format&fit=crop', itinerary: ['Arrival, Ghat walk & Ganga Aarti', 'Kashi Vishwanath, Sarnath & Dasaswamedh Ghat', 'Sunrise boat ride & departure'], type: 'tour', searchTags: ['varanasi','banaras','kashi','ganga','ghats','spiritual','temples','sarnath','up'] },
+  { id: 't10', title: 'Darjeeling–Sikkim Tea Trail', duration: '6D/5N', price: 13499, location: 'West Bengal / Sikkim', rating: 4.7, reviews: 198, highlights: ['Tiger Hill Sunrise', 'Tea Garden Walk', 'Gangtok City', 'Tsomgo Lake'], img: 'https://images.unsplash.com/photo-1598136490929-292a0a7890c2?w=600&auto=format&fit=crop', itinerary: ['NJP to Darjeeling', 'Tiger Hill sunrise & tea gardens', 'Darjeeling to Gangtok', 'Tsomgo Lake & Nathula Pass', 'Pelling & Rumtek Monastery', 'Departure'], type: 'tour', searchTags: ['darjeeling','sikkim','gangtok','tea','himalaya','northeast','kalimpong'] },
 ];
 
 const SHUTTLES = [
@@ -2428,32 +2545,50 @@ async function performSearch(type) {
     const from = document.getElementById('busFrom').value.trim();
     const to   = document.getElementById('busTo').value.trim();
     const busDate = document.getElementById('busDate').value;
-    showToast('🚌 Finding buses...');
+    const busType = document.getElementById('busType').value;
+    showToast('🚌 Finding buses from ' + (from||'origin') + ' to ' + (to||'destination') + '...');
     let dist = 400;
     if (from && to) {
       const [fromC, toC] = await Promise.all([geocodeCity(from + ', India'), geocodeCity(to + ', India')]);
       if (fromC && toC) dist = haversineKm(fromC, toC);
     }
-    results = BUSES.map(b => ({
-      ...b,
-      price: Math.max(b.price, Math.round(dist * 8)), // ₹8/km
-      distanceKm: dist,
-      from, to, date: busDate,
-    }));
-    if (from || to) results = results.filter(b => !from || b.route.toLowerCase().includes(from.toLowerCase()) || true);
+    results = generateBusResults(from, to, dist, busType, busDate);
     title = 'Buses' + (from && to ? ' — ' + from + ' → ' + to : from ? ' from ' + from : '');
     App.searchParams = { from, to, dist };
   } else if (type === 'tours') {
     const dest = document.getElementById('tourDest').value.trim();
-    results = TOURS.filter(t => !dest || t.location.toLowerCase().includes(dest.toLowerCase()) || t.title.toLowerCase().includes(dest.toLowerCase()));
-    if (!results.length) results = TOURS.slice();
-    title = 'Tour Packages' + (dest ? ' — ' + dest : '');
+    const destLower = dest.toLowerCase();
+    if (dest) {
+      // Match against location, title, and searchTags
+      results = TOURS.filter(t =>
+        t.location.toLowerCase().includes(destLower) ||
+        t.title.toLowerCase().includes(destLower) ||
+        (t.searchTags && t.searchTags.some(tag => tag.includes(destLower) || destLower.includes(tag)))
+      );
+      if (!results.length) {
+        // No exact match - show message and all tours as suggestions
+        title = 'Tour Packages — No packages found for "' + dest + '"';
+        document.getElementById('resultsTitle').textContent = title;
+        document.getElementById('resultsSubtitle').textContent = 'Showing all available packages instead';
+        results = TOURS.slice();
+      }
+    } else {
+      results = TOURS.slice();
+    }
+    title = 'Tour Packages' + (dest ? ' — ' + dest : ' — All Destinations');
   } else if (type === 'shuttle') {
-    const routeVal = document.getElementById('shuttleRoute').value;
-    results = SHUTTLES.filter(s => !routeVal || s.route.includes(routeVal.split('↔')[0].trim()));
-    if (!results.length) results = SHUTTLES.slice();
-    title = 'Shuttle Routes';
-    App.searchParams = { date: document.getElementById('shuttleDate').value };
+    const from = document.getElementById('shuttleFrom').value.trim();
+    const to   = document.getElementById('shuttleTo').value.trim();
+    const shuttleDate = document.getElementById('shuttleDate').value;
+    showToast('🚐 Finding shuttles...');
+    let dist = 25;
+    if (from && to) {
+      const [fromC, toC] = await Promise.all([geocodeCity(from + ', India'), geocodeCity(to + ', India')]);
+      if (fromC && toC) dist = Math.max(5, haversineKm(fromC, toC));
+    }
+    results = generateShuttleResults(from, to, dist, shuttleDate);
+    title = 'Shuttle Services' + (from && to ? ' — ' + from + ' ↔ ' + to : '');
+    App.searchParams = { from, to, date: shuttleDate, dist };
   }
 
   App.searchResults = results;
@@ -2515,6 +2650,7 @@ function createResultCard(item, idx) {
       </div>`;
   } else if (type === 'cab') {
     const distBadge = item.distance ? `<div style="background:#dcfce7;color:#166534;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;margin-bottom:8px;display:inline-block">📏 ${item.distance} km • ₹${item.pricePerKm || item.price}/km</div>` : '';
+    const companiesList = item.companies ? item.companies.slice(0,4).map(c => `<span style="background:#f0fdf4;color:#166534;font-size:10px;padding:2px 7px;border-radius:20px;border:1px solid #bbf7d0">${c}</span>`).join('') : '';
     div.innerHTML = `
       <div class="result-body">
         <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px">
@@ -2525,6 +2661,7 @@ function createResultCard(item, idx) {
           </div>
           ${item.badge ? `<span class="result-badge" style="position:static">${item.badge}</span>` : ''}
         </div>
+        ${companiesList ? `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px"><span style="font-size:11px;color:var(--text-muted);font-weight:600;padding-top:2px">Via:</span>${companiesList}</div>` : ''}
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
           ${item.features.map(f => `<span style="background:var(--light);color:var(--primary);font-size:11px;padding:2px 8px;border-radius:20px">${f}</span>`).join('')}
         </div>
@@ -2539,11 +2676,12 @@ function createResultCard(item, idx) {
         <button class="book-now-btn" onclick="bookItem(${idx})">Book This Cab →</button>
       </div>`;
   } else if (type === 'bus') {
-    const busDistBadge = item.distanceKm ? `<div style="background:#dcfce7;color:#166534;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;margin-bottom:8px;display:inline-block">📏 ~${item.distanceKm} km • ₹8/km per seat</div>` : '';
+    const busDistBadge = item.distanceKm ? `<div style="background:#dcfce7;color:#166534;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;margin-bottom:8px;display:inline-block">📏 ~${item.distanceKm} km</div>` : '';
+    const badgePill = item.badge ? `<span style="background:#fff7ed;color:var(--accent);font-size:10px;padding:2px 8px;border-radius:20px;border:1px solid #fed7aa;margin-left:6px">${item.badge}</span>` : '';
     div.innerHTML = `
       <div class="result-body">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-          <h3>${item.name}</h3>
+          <div><h3>${item.name}${badgePill}</h3><p style="font-size:12px;color:var(--primary);font-weight:600;margin-top:2px">${item.busType || ''}</p></div>
           <span class="result-rating">⭐ ${item.rating}</span>
         </div>
         <p style="color:var(--text-muted);font-size:13px;margin-bottom:10px">🚌 ${item.route}</p>
@@ -2578,14 +2716,18 @@ function createResultCard(item, idx) {
         <button class="book-now-btn" onclick="bookItem(${idx})">View Package</button>
       </div>`;
   } else if (type === 'shuttle') {
+    const shuttleFeatures = item.features ? item.features.map(f => `<span style="background:var(--light);color:var(--primary);font-size:11px;padding:2px 8px;border-radius:20px">${f}</span>`).join('') : '';
     div.innerHTML = `
       <div class="result-body">
-        <h3 style="margin-bottom:10px">${item.route}</h3>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px">
+          <h3 style="font-size:15px">${item.name || 'Shuttle Service'}</h3>
+          <span style="background:var(--light);color:var(--primary);font-size:11px;padding:3px 8px;border-radius:20px">🚐 Shuttle</span>
+        </div>
+        <p style="color:var(--text-muted);font-size:13px;margin-bottom:6px">📍 ${item.route}</p>
         <p style="color:var(--text-muted);font-size:13px;margin-bottom:6px">🕐 ${item.timing}</p>
-        <p style="color:var(--text-muted);font-size:13px;margin-bottom:6px">🔄 ${item.frequency}</p>
-        <p style="color:var(--text-muted);font-size:13px;margin-bottom:6px">👥 Capacity: ${item.capacity} pax</p>
-        <div style="background:#dcfce7;color:#166534;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;margin-bottom:10px;display:inline-block">₹10/km per seat • Real-time pricing</div>
-        <div class="result-price"><strong>₹${item.price}</strong><span>/person (base)</span></div>
+        <p style="color:var(--text-muted);font-size:13px;margin-bottom:8px">🔄 ${item.frequency} • 👥 ${item.capacity} seats/vehicle</p>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px">${shuttleFeatures}</div>
+        <div class="result-price"><strong>₹${item.price}</strong><span>/person</span></div>
         <button class="book-now-btn" onclick="bookItem(${idx})">Book Shuttle →</button>
       </div>`;
   }
@@ -2722,15 +2864,15 @@ function startBooking(type, item) {
     openAuthModal('signup');
     return;
   }
-  // Bus needs seat selection first
   if (type === 'bus') {
+    // Bus needs seat selection first via modal
     App.currentBooking = { type, item, step: 1, selectedSeats: [], seats: [] };
     App.appliedCoupon = null;
     openModal('bookingModal');
     renderBookingStep(1);
     return;
   }
-  // All others → payment page
+  // All other types → payment page directly (like Booking.com)
   gotoPayment(type, item, {});
 }
 
@@ -2738,9 +2880,9 @@ function gotoPayment(type, item, extras) {
   const sp = App.searchParams || {};
   const d = {
     type, item,
-    pickup:    extras.pickup    || sp.from || '',
-    drop:      extras.drop      || sp.to   || '',
-    date:      extras.date      || sp.date  || '',
+    pickup:    extras.pickup    || sp.from || item.from || '',
+    drop:      extras.drop      || sp.to   || item.to   || '',
+    date:      extras.date      || sp.date  || item.date || '',
     time:      extras.time      || '',
     checkin:   extras.checkin   || sp.checkin  || '',
     checkout:  extras.checkout  || sp.checkout || '',
@@ -2751,7 +2893,7 @@ function gotoPayment(type, item, extras) {
     timeSlot:  extras.timeSlot  || '',
     selectedSeats: extras.selectedSeats || [],
     appliedCoupon: App.appliedCoupon || null,
-    distanceKm: extras.distanceKm || item.distance || 0,
+    distanceKm: extras.distanceKm || item.distance || item.distanceKm || sp.dist || 0,
   };
   lsSet('gj_pendingBooking', d);
   window.location.href = 'payment.html';
