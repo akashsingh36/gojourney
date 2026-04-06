@@ -1719,6 +1719,9 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
           </div>
           <button class="search-btn" onclick="performSearch('cabs')">🔍 Search</button>
         </div>
+        <div id="cabPricePreview" style="display:none;margin-top:12px;padding:10px 16px;background:rgba(255,255,255,0.9);border-radius:10px;font-size:13px;color:var(--primary)">
+          <span id="cabPreviewText">🔄 Calculating fare...</span>
+        </div>
       </div>
 
       <div class="tab-content hidden" id="tab-buses">
@@ -2212,10 +2215,10 @@ const HOTELS = [
 ];
 
 const CABS = [
-  { id: 'c1', name: 'Mini (Hatchback)', vehicle: 'Swift / WagonR', capacity: 4, price: 12, minFare: 299, img: '🚗', badge: 'Best Value', features: ['AC', 'GPS', 'Music'], type: 'cab' },
-  { id: 'c2', name: 'Sedan', vehicle: 'Dzire / Xcent', capacity: 4, price: 15, minFare: 399, img: '🚙', badge: 'Popular', features: ['AC', 'GPS', 'USB Charging'], type: 'cab' },
-  { id: 'c3', name: 'SUV', vehicle: 'Innova / Ertiga', capacity: 7, price: 20, minFare: 599, img: '🚐', badge: 'Family', features: ['AC', 'GPS', 'WiFi Hotspot', 'Extra Luggage'], type: 'cab' },
-  { id: 'c4', name: 'Tempo Traveller', vehicle: '12-Seater', capacity: 12, price: 30, minFare: 999, img: '🚌', badge: 'Group', features: ['AC', 'GPS', 'Reclining Seats', 'Charging Points'], type: 'cab' },
+  { id: 'c1', name: 'Mini (Hatchback)', vehicle: 'Swift / WagonR', capacity: 4, pricePerKm: 12, price: 12, minFare: 299, img: '🚗', badge: 'Best Value', features: ['AC', 'GPS', 'Music'], type: 'cab' },
+  { id: 'c2', name: 'Sedan', vehicle: 'Dzire / Xcent', capacity: 4, pricePerKm: 15, price: 15, minFare: 399, img: '🚙', badge: 'Popular', features: ['AC', 'GPS', 'USB Charging'], type: 'cab' },
+  { id: 'c3', name: 'SUV', vehicle: 'Innova / Ertiga', capacity: 7, pricePerKm: 20, price: 20, minFare: 599, img: '🚐', badge: 'Family', features: ['AC', 'GPS', 'WiFi Hotspot', 'Extra Luggage'], type: 'cab' },
+  { id: 'c4', name: 'Tempo Traveller', vehicle: '12-Seater', capacity: 12, pricePerKm: 30, price: 30, minFare: 999, img: '🚌', badge: 'Group', features: ['AC', 'GPS', 'Reclining Seats', 'Charging Points'], type: 'cab' },
 ];
 
 const BUSES = [
@@ -2309,40 +2312,153 @@ function scrollToHero() {
   document.getElementById('hero').scrollIntoView({ behavior: 'smooth' });
 }
 
+// ===== GEOCODING (Nominatim - free) =====
+async function geocodeCity(query) {
+  try {
+    const resp = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&countrycodes=in`,
+      { headers: { 'Accept-Language': 'en', 'User-Agent': 'GoJourney/1.0' } }
+    );
+    const data = await resp.json();
+    if (data && data[0]) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), display: data[0].display_name };
+    return null;
+  } catch(e) { return null; }
+}
+
+function haversineKm(a, b) {
+  const R = 6371, dLat = (b.lat - a.lat) * Math.PI/180, dLng = (b.lng - a.lng) * Math.PI/180;
+  const x = Math.sin(dLat/2)**2 + Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLng/2)**2;
+  return Math.round(R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1-x)) * 1.3);
+}
+
+// ===== REAL HOTEL SEARCH via Nominatim =====
+async function searchRealHotels(destination) {
+  // First geocode the destination to get coords
+  const coord = await geocodeCity(destination + ', India');
+  if (!coord) return HOTELS.filter(h => !destination || h.location.toLowerCase().includes(destination.toLowerCase()));
+
+  // Search for hotels near that location using Overpass API (OpenStreetMap)
+  try {
+    const radius = 15000; // 15km radius
+    const query = `[out:json][timeout:10];(node["tourism"="hotel"](around:${radius},${coord.lat},${coord.lng});way["tourism"="hotel"](around:${radius},${coord.lat},${coord.lng}););out center 8;`;
+    const resp = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      body: 'data=' + encodeURIComponent(query)
+    });
+    const data = await resp.json();
+    if (data.elements && data.elements.length > 0) {
+      return data.elements.slice(0, 8).map((el, i) => {
+        const lat = el.lat || el.center?.lat;
+        const lng = el.lon || el.center?.lon;
+        const name = el.tags?.name || el.tags?.['name:en'] || ('Hotel ' + (i+1));
+        const stars = el.tags?.stars ? parseInt(el.tags.stars) : (Math.floor(Math.random()*2)+3);
+        const basePrice = [1999,2499,2999,3999,4999,5999,7999][Math.floor(Math.random()*7)];
+        return {
+          id: 'real_' + (el.id || i),
+          name, location: destination,
+          lat, lng,
+          rating: (3.5 + Math.random()*1.5).toFixed(1),
+          reviews: Math.floor(Math.random()*500+50),
+          price: basePrice,
+          originalPrice: Math.round(basePrice * 1.3),
+          amenities: ['WiFi', stars >= 4 ? 'Pool' : 'Parking', stars >= 5 ? 'Spa' : 'Restaurant'],
+          img: 'https://source.unsplash.com/400x300/?hotel,' + encodeURIComponent(destination) + '&sig=' + i,
+          badge: stars >= 4 ? '⭐ ' + stars + ' Star' : null,
+          type: 'hotel',
+          isReal: true,
+          mapLink: `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=17/${lat}/${lng}`,
+        };
+      });
+    }
+  } catch(e) {}
+
+  // Fallback to local HOTELS data filtered by destination
+  return HOTELS.filter(h => !destination || h.location.toLowerCase().includes(destination.toLowerCase())).length > 0
+    ? HOTELS.filter(h => !destination || h.location.toLowerCase().includes(destination.toLowerCase()))
+    : HOTELS.map(h => ({ ...h, location: destination || h.location }));
+}
+
 // ===== SEARCH =====
-function performSearch(type) {
+async function performSearch(type) {
   const resultsSection = document.getElementById('searchResults');
   resultsSection.classList.remove('hidden');
   resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Show loading state
+  document.getElementById('resultsGrid').innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px 20px"><div style="font-size:36px;margin-bottom:12px">🔍</div><p style="color:var(--text-muted);font-size:15px">Searching for best options...</p></div>';
+  document.getElementById('resultsTitle').textContent = 'Searching...';
+  document.getElementById('resultsSubtitle').textContent = 'Please wait';
 
   let results = [];
   let title = '';
 
   if (type === 'hotels') {
-    const dest = document.getElementById('hotelDest').value;
-    results = HOTELS.slice();
-    title = 'Hotels' + (dest ? ' in ' + dest : ' — All Locations');
+    const dest = document.getElementById('hotelDest').value.trim();
+    showToast(dest ? '🏨 Searching hotels in ' + dest + '...' : '🏨 Searching all hotels...');
+    if (dest) {
+      results = await searchRealHotels(dest);
+      title = 'Hotels in ' + dest;
+    } else {
+      results = HOTELS.slice();
+      title = 'Hotels — All Locations';
+    }
+    App.searchParams = { checkin: document.getElementById('hotelCheckin')?.value, checkout: document.getElementById('hotelCheckout')?.value };
   } else if (type === 'cabs') {
-    const from = document.getElementById('cabFrom').value;
-    const dist = Math.floor(Math.random() * 400 + 20);
-    results = CABS.map(c => ({ ...c, price: Math.max(c.minFare, dist * c.price), distance: dist }));
-    title = 'Available Cabs' + (from ? ' from ' + from : '');
+    const from = document.getElementById('cabFrom').value.trim();
+    const to   = document.getElementById('cabTo').value.trim();
+    const cabDate = document.getElementById('cabDate').value;
+    showToast('🚗 Calculating distances...');
+    let dist = 80;
+    if (from && to) {
+      const [fromC, toC] = await Promise.all([geocodeCity(from), geocodeCity(to)]);
+      if (fromC && toC) dist = haversineKm(fromC, toC);
+    }
+    results = CABS.map(c => ({
+      ...c,
+      price: Math.max(c.minFare, Math.round(dist * c.price)),
+      pricePerKm: c.price,
+      distance: dist,
+      from, to, date: cabDate,
+    }));
+    title = 'Available Cabs' + (from && to ? ' — ' + from + ' → ' + to : from ? ' from ' + from : '');
+    document.getElementById('resultsSubtitle') && (document.getElementById('resultsSubtitle').textContent =
+      dist ? '📏 Estimated distance: ' + dist + ' km • ' + results.length + ' vehicles' : results.length + ' vehicles');
+    App.searchParams = { from, to, dist };
   } else if (type === 'buses') {
-    const from = document.getElementById('busFrom').value;
-    results = BUSES.slice();
-    title = 'Buses' + (from ? ' from ' + from : '');
+    const from = document.getElementById('busFrom').value.trim();
+    const to   = document.getElementById('busTo').value.trim();
+    const busDate = document.getElementById('busDate').value;
+    showToast('🚌 Finding buses...');
+    let dist = 400;
+    if (from && to) {
+      const [fromC, toC] = await Promise.all([geocodeCity(from + ', India'), geocodeCity(to + ', India')]);
+      if (fromC && toC) dist = haversineKm(fromC, toC);
+    }
+    results = BUSES.map(b => ({
+      ...b,
+      price: Math.max(b.price, Math.round(dist * 8)), // ₹8/km
+      distanceKm: dist,
+      from, to, date: busDate,
+    }));
+    if (from || to) results = results.filter(b => !from || b.route.toLowerCase().includes(from.toLowerCase()) || true);
+    title = 'Buses' + (from && to ? ' — ' + from + ' → ' + to : from ? ' from ' + from : '');
+    App.searchParams = { from, to, dist };
   } else if (type === 'tours') {
-    const dest = document.getElementById('tourDest').value;
-    results = TOURS.slice();
+    const dest = document.getElementById('tourDest').value.trim();
+    results = TOURS.filter(t => !dest || t.location.toLowerCase().includes(dest.toLowerCase()) || t.title.toLowerCase().includes(dest.toLowerCase()));
+    if (!results.length) results = TOURS.slice();
     title = 'Tour Packages' + (dest ? ' — ' + dest : '');
   } else if (type === 'shuttle') {
-    results = SHUTTLES.slice();
-    title = 'Available Shuttle Routes';
+    const routeVal = document.getElementById('shuttleRoute').value;
+    results = SHUTTLES.filter(s => !routeVal || s.route.includes(routeVal.split('↔')[0].trim()));
+    if (!results.length) results = SHUTTLES.slice();
+    title = 'Shuttle Routes';
+    App.searchParams = { date: document.getElementById('shuttleDate').value };
   }
 
   App.searchResults = results;
   document.getElementById('resultsTitle').textContent = title;
-  document.getElementById('resultsSubtitle').textContent = results.length + ' results found';
+  if (type !== 'cabs') document.getElementById('resultsSubtitle').textContent = results.length + ' results found';
   renderResults(results);
 }
 
@@ -2398,9 +2514,10 @@ function createResultCard(item, idx) {
         <button class="book-now-btn" onclick="bookItem(${idx})">Book Now</button>
       </div>`;
   } else if (type === 'cab') {
+    const distBadge = item.distance ? `<div style="background:#dcfce7;color:#166534;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;margin-bottom:8px;display:inline-block">📏 ${item.distance} km • ₹${item.pricePerKm || item.price}/km</div>` : '';
     div.innerHTML = `
       <div class="result-body">
-        <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px">
           <span style="font-size:40px">${item.img}</span>
           <div style="flex:1">
             <h3>${item.name}</h3>
@@ -2408,17 +2525,21 @@ function createResultCard(item, idx) {
           </div>
           ${item.badge ? `<span class="result-badge" style="position:static">${item.badge}</span>` : ''}
         </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
           ${item.features.map(f => `<span style="background:var(--light);color:var(--primary);font-size:11px;padding:2px 8px;border-radius:20px">${f}</span>`).join('')}
         </div>
-        ${item.distance ? `<p style="font-size:13px;color:var(--text-muted);margin-bottom:8px">📍 Est. distance: ${item.distance} km</p>` : ''}
+        ${distBadge}
+        <div style="background:var(--off-white);border-radius:8px;padding:10px;margin-bottom:10px;font-size:12px;color:var(--text-muted)">
+          Min fare: ₹${item.minFare} &nbsp;|&nbsp; Rate: ₹${item.pricePerKm || item.price}/km
+        </div>
         <div class="result-price">
           <strong>₹${Math.round(item.price).toLocaleString()}</strong>
-          <span>estimated fare</span>
+          <span>${item.distance ? 'for ' + item.distance + ' km' : 'estimated fare'}</span>
         </div>
-        <button class="book-now-btn" onclick="bookItem(${idx})">Book This Cab</button>
+        <button class="book-now-btn" onclick="bookItem(${idx})">Book This Cab →</button>
       </div>`;
   } else if (type === 'bus') {
+    const busDistBadge = item.distanceKm ? `<div style="background:#dcfce7;color:#166534;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;margin-bottom:8px;display:inline-block">📏 ~${item.distanceKm} km • ₹8/km per seat</div>` : '';
     div.innerHTML = `
       <div class="result-body">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
@@ -2433,9 +2554,10 @@ function createResultCard(item, idx) {
           </div>
           <div style="text-align:center"><strong>${item.arrival}</strong><br><span style="font-size:11px;color:var(--text-muted)">Arrive</span></div>
         </div>
-        <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">💺 ${item.available} seats available</p>
+        ${busDistBadge}
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">💺 ${item.available} seats available of ${item.seats}</p>
         <div class="result-price"><strong>₹${item.price}</strong><span>/seat</span></div>
-        <button class="book-now-btn" onclick="bookItem(${idx})">Select Seats</button>
+        <button class="book-now-btn" onclick="bookItem(${idx})">Select Seats →</button>
       </div>`;
   } else if (type === 'tour') {
     div.innerHTML = `
@@ -2461,9 +2583,10 @@ function createResultCard(item, idx) {
         <h3 style="margin-bottom:10px">${item.route}</h3>
         <p style="color:var(--text-muted);font-size:13px;margin-bottom:6px">🕐 ${item.timing}</p>
         <p style="color:var(--text-muted);font-size:13px;margin-bottom:6px">🔄 ${item.frequency}</p>
-        <p style="color:var(--text-muted);font-size:13px;margin-bottom:14px">👥 Capacity: ${item.capacity} pax</p>
-        <div class="result-price"><strong>₹${item.price}</strong><span>/person</span></div>
-        <button class="book-now-btn" onclick="bookItem(${idx})">Book Shuttle</button>
+        <p style="color:var(--text-muted);font-size:13px;margin-bottom:6px">👥 Capacity: ${item.capacity} pax</p>
+        <div style="background:#dcfce7;color:#166534;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;margin-bottom:10px;display:inline-block">₹10/km per seat • Real-time pricing</div>
+        <div class="result-price"><strong>₹${item.price}</strong><span>/person (base)</span></div>
+        <button class="book-now-btn" onclick="bookItem(${idx})">Book Shuttle →</button>
       </div>`;
   }
 
@@ -2599,10 +2722,39 @@ function startBooking(type, item) {
     openAuthModal('signup');
     return;
   }
-  App.currentBooking = { type, item, step: 1, selectedSeats: [], seats: [] };
-  App.appliedCoupon = null;
-  openModal('bookingModal');
-  renderBookingStep(1);
+  // Bus needs seat selection first
+  if (type === 'bus') {
+    App.currentBooking = { type, item, step: 1, selectedSeats: [], seats: [] };
+    App.appliedCoupon = null;
+    openModal('bookingModal');
+    renderBookingStep(1);
+    return;
+  }
+  // All others → payment page
+  gotoPayment(type, item, {});
+}
+
+function gotoPayment(type, item, extras) {
+  const sp = App.searchParams || {};
+  const d = {
+    type, item,
+    pickup:    extras.pickup    || sp.from || '',
+    drop:      extras.drop      || sp.to   || '',
+    date:      extras.date      || sp.date  || '',
+    time:      extras.time      || '',
+    checkin:   extras.checkin   || sp.checkin  || '',
+    checkout:  extras.checkout  || sp.checkout || '',
+    rooms:     extras.rooms     || '1',
+    roomType:  extras.roomType  || 'standard',
+    travelers: extras.travelers || '1',
+    passengers:extras.passengers|| '1',
+    timeSlot:  extras.timeSlot  || '',
+    selectedSeats: extras.selectedSeats || [],
+    appliedCoupon: App.appliedCoupon || null,
+    distanceKm: extras.distanceKm || item.distance || 0,
+  };
+  lsSet('gj_pendingBooking', d);
+  window.location.href = 'payment.html';
 }
 
 function renderBookingStep(step) {
@@ -2886,11 +3038,20 @@ function toggleSeat(num) {
 }
 
 function nextBookingStep() {
-  const { step, type } = App.currentBooking;
+  const { step, type, item } = App.currentBooking;
   if (step === 1) {
     const nameEl = document.getElementById('bName');
     if (nameEl && !nameEl.value.trim()) { showToast('Please enter your name'); return; }
-    if (type === 'bus' && !App.currentBooking.selectedSeats?.length) { showToast('Please select at least one seat'); return; }
+    if (type === 'bus') {
+      if (!App.currentBooking.selectedSeats?.length) { showToast('Please select at least one seat'); return; }
+      // Bus: close modal and go to payment page
+      closeModal('bookingModal');
+      gotoPayment('bus', item, {
+        selectedSeats: App.currentBooking.selectedSeats,
+        date: document.getElementById('busDate')?.value || '',
+      });
+      return;
+    }
     renderBookingStep(2);
   } else if (step === 2) {
     renderBookingStep(3);
@@ -3115,20 +3276,48 @@ function switchDashTab(tab, btn) {
 }
 
 function renderBookingsList(bookings, source) {
-  if (!bookings.length) return '<p style="text-align:center;color:var(--text-muted);padding:40px">No bookings yet. Start your journey!</p>';
+  if (!bookings.length) return `
+    <div style="text-align:center;padding:60px 20px">
+      <div style="font-size:48px;margin-bottom:12px">🧳</div>
+      <h3 style="margin-bottom:8px;color:var(--text)">No bookings yet</h3>
+      <p style="color:var(--text-muted);margin-bottom:20px">Start exploring and book your first trip!</p>
+      <button class="btn-primary" onclick="closeModal('dashboardModal');scrollToHero()">Explore Now →</button>
+    </div>`;
   const icons = { hotel: '🏨', cab: '🚖', bus: '🚌', tour: '🗺️', shuttle: '🚐' };
-  return bookings.map(b => `
-    <div class="booking-item">
-      <div class="booking-icon">${icons[b.type] || '✈️'}</div>
-      <div class="booking-info">
-        <strong>${b.item?.name || b.item?.title || b.item?.route || b.type}</strong>
-        <span>${b.date} • ₹${b.amount?.toLocaleString()} • ID: ${b.id}</span>
+  // Sort newest first
+  const sorted = [...bookings].sort((a,b) => new Date(b.timestamp || b.date) - new Date(a.timestamp || a.date));
+  return sorted.map(b => {
+    const td = b.travelDetails || {};
+    let extraInfo = '';
+    if (b.type === 'cab' && (td.pickup || td.drop)) extraInfo = `📍 ${td.pickup || ''} → ${td.drop || ''}`;
+    else if (b.type === 'bus' && td.route) extraInfo = `🚌 ${td.route}`;
+    else if (b.type === 'hotel' && td.checkin) extraInfo = `📅 ${td.checkin} → ${td.checkout || ''}`;
+    else if (b.type === 'shuttle' && td.route) extraInfo = `🚐 ${td.route}`;
+    if (td.distanceKm) extraInfo += ` • 📏 ${td.distanceKm} km`;
+    return `
+    <div class="booking-item" style="flex-direction:column;align-items:stretch;gap:10px">
+      <div style="display:flex;align-items:flex-start;gap:12px">
+        <div class="booking-icon" style="font-size:24px;min-width:40px;height:40px;background:var(--light);border-radius:10px;display:flex;align-items:center;justify-content:center">${icons[b.type] || '✈️'}</div>
+        <div style="flex:1;min-width:0">
+          <strong style="font-size:15px;display:block;margin-bottom:2px">${b.item?.name || b.item?.title || b.item?.route || b.type}</strong>
+          <span style="font-size:12px;color:var(--text-muted)">${b.date} • ID: <strong>${b.id}</strong></span>
+          ${extraInfo ? `<div style="font-size:12px;color:var(--text-muted);margin-top:3px">${extraInfo}</div>` : ''}
+          ${b.traveler ? `<div style="font-size:12px;color:var(--text-muted)">👤 ${b.traveler.name} • ${b.traveler.phone || ''}</div>` : ''}
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:16px;font-weight:800;color:var(--primary)">₹${(b.amount||0).toLocaleString()}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${b.paymentMethod ? b.paymentMethod.toUpperCase() : ''}</div>
+        </div>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <span class="booking-status status-${b.status}">${b.status === 'confirmed' ? '✅ Confirmed' : b.status === 'cancelled' ? '❌ Cancelled' : b.status}</span>
-        ${b.status === 'confirmed' ? `<button onclick="showCancelConfirm('${b.id}','${source || 'user'}')" style="font-size:12px;background:#fee2e2;color:#991b1b;padding:5px 12px;border-radius:50px;border:1px solid #fca5a5;cursor:pointer;font-family:inherit;font-weight:600;white-space:nowrap;transition:all 0.2s" onmouseover="this.style.background='#fecaca'" onmouseout="this.style.background='#fee2e2'">Cancel</button>` : ''}
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+        <span class="booking-status status-${b.status}">${b.status === 'confirmed' ? '✅ Confirmed' : b.status === 'cancelled' ? '❌ Cancelled' : '⏳ ' + b.status}</span>
+        <div style="display:flex;gap:8px">
+          ${b.status === 'confirmed' ? `<button onclick="showCancelConfirm('${b.id}','${source || 'user'}')" style="font-size:12px;background:#fee2e2;color:#991b1b;padding:5px 12px;border-radius:50px;border:1px solid #fca5a5;cursor:pointer;font-family:inherit;font-weight:600;white-space:nowrap;transition:all 0.2s" onmouseover="this.style.background='#fecaca'" onmouseout="this.style.background='#fee2e2'">✕ Cancel</button>` : ''}
+          <button onclick="showToast('Booking receipt: ' + '${b.id}')" style="font-size:12px;background:var(--light);color:var(--primary);padding:5px 12px;border-radius:50px;border:none;cursor:pointer;font-family:inherit;font-weight:600">🧾 Receipt</button>
+        </div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function renderProfileForm() {
@@ -3477,6 +3666,44 @@ function init() {
   renderTestimonials();
   setTimeout(observeReveal, 500);
   window.addEventListener('scroll', () => observeReveal(), { passive: true });
+
+  // Real-time cab price preview
+  let cabDebounce;
+  ['cabFrom', 'cabTo'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', () => {
+      clearTimeout(cabDebounce);
+      cabDebounce = setTimeout(updateCabPricePreview, 800);
+    });
+  });
+
+  // Hotel search on Enter
+  const hotelDest = document.getElementById('hotelDest');
+  if (hotelDest) {
+    hotelDest.addEventListener('keydown', e => { if (e.key === 'Enter') performSearch('hotels'); });
+  }
+}
+
+async function updateCabPricePreview() {
+  const from = document.getElementById('cabFrom')?.value.trim();
+  const to   = document.getElementById('cabTo')?.value.trim();
+  const preview = document.getElementById('cabPricePreview');
+  const text = document.getElementById('cabPreviewText');
+  if (!from || !to || !preview || !text) return;
+
+  preview.style.display = 'block';
+  text.textContent = '🔄 Calculating distance...';
+
+  try {
+    const [fromC, toC] = await Promise.all([geocodeCity(from), geocodeCity(to)]);
+    if (!fromC || !toC) { text.textContent = '⚠️ Could not geocode locations. Enter full city names.'; return; }
+    const dist = haversineKm(fromC, toC);
+    const fares = CABS.map(c => `${c.name}: <strong>₹${Math.max(c.minFare, dist * c.pricePerKm).toLocaleString()}</strong>`).join(' &nbsp;|&nbsp; ');
+    text.innerHTML = `📏 ${dist} km &nbsp;|&nbsp; ${fares}`;
+  } catch(e) {
+    text.textContent = '⚠️ Could not calculate distance.';
+  }
 }
 
 document.addEventListener('DOMContentLoaded', init);

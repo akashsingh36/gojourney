@@ -109,7 +109,7 @@ app.post('/api/auth/register', async (req, res) => {
     if (existing) return res.status(400).json({ error: 'Email already registered' });
     
     const hashed = await bcrypt.hash(password, 12);
-    const user = await User.create({ name, email, password: password, phone });
+    const user = await User.create({ name, email, password: hashed, phone });
     
     const token = jwt.sign({ id: user._id, email: user.email, role: user.role, name: user.name }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
@@ -128,7 +128,7 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
-    const valid = password === user.password; // ✅ FIXED
+    const valid = await bcrypt.compare(password, user.password).catch(() => password === user.password);
 
     if (!valid) {
       return res.status(400).json({ error: 'Invalid credentials' });
@@ -160,11 +160,26 @@ app.get('/api/auth/me', authMiddleware, async (req, res) => {
 });
 
 // --- SEARCH ROUTES ---
-app.get('/api/search/hotels', (req, res) => {
+app.get('/api/search/hotels', async (req, res) => {
   const { destination, checkin, checkout, guests } = req.query;
-  // In production, query MongoDB with filters
-  // Mock response:
-  res.json({ results: MOCK_HOTELS, total: MOCK_HOTELS.length, query: { destination, checkin, checkout, guests } });
+  try {
+    // Try to find real hotels from DB first
+    let query = { type: 'hotel', active: true };
+    if (destination) {
+      query.location = { $regex: destination, $options: 'i' };
+    }
+    const dbListings = await Listing.find(query).limit(12);
+    if (dbListings.length > 0) {
+      return res.json({ results: dbListings, total: dbListings.length, source: 'db', query: { destination, checkin, checkout, guests } });
+    }
+  } catch(e) {}
+  // Fallback mock data filtered by destination
+  let results = MOCK_HOTELS;
+  if (destination) {
+    results = results.filter(h => h.location.toLowerCase().includes(destination.toLowerCase()));
+    if (!results.length) results = MOCK_HOTELS; // return all if no match
+  }
+  res.json({ results, total: results.length, source: 'mock', query: { destination, checkin, checkout, guests } });
 });
 
 app.get('/api/search/cabs', (req, res) => {
