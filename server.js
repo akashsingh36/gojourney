@@ -2,7 +2,6 @@
  * GoJourney - Backend Server (Node.js + Express + MongoDB)
  * Run: npm install && node server.js
  */
-
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -10,8 +9,10 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const path = require('path');
 
+const fetch = require("node-fetch");
+
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'gojourney_secret_key_2026';
 const MONGO_URI = process.env.MONGO_URI;
 
@@ -97,6 +98,62 @@ const adminMiddleware = async (req, res, next) => {
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'GoJourney API running', time: new Date().toISOString() });
+});
+
+// ===== SEARCH ROUTES =====
+
+// Existing hotel search
+app.get('/api/search/hotels', async (req, res) => {
+});
+
+
+// 🔥 ADD YOUR BUS API HERE (PASTE BELOW)
+
+app.get("/api/search-buses", async (req, res) => {
+  let { from, to } = req.query;
+
+  if (!from || !to) {
+    return res.status(400).json({ error: "From and To required" });
+  }
+
+  from = from.toLowerCase();
+  to = to.toLowerCase();
+
+  try {
+    // 🔴 CHANGE THIS LINE ONLY
+    const distanceRes = await fetch(`AIzaSyBUi7G0cPiT7-hDQHveKRZ4D4SjTsVQAsQ?from=${from}&to=${to}`);
+    const distanceData = await distanceRes.json();
+
+    const distance = distanceData.distance || 300;
+    const duration = distanceData.duration || "5 hours";
+
+    const buses = [
+      { from: "delhi", to: "kanpur", name: "Volvo AC", type: "AC", pricePerKm: 2 },
+      { from: "delhi", to: "kanpur", name: "Sleeper Bus", type: "Sleeper", pricePerKm: 1.5 },
+      { from: "delhi", to: "prayagraj", name: "UPSRTC Express", type: "Non-AC", pricePerKm: 1.2 }
+    ];
+
+    const filtered = buses.filter(
+      b => b.from === from && b.to === to
+    );
+
+    if (filtered.length === 0) {
+      return res.json({ message: "No buses found" });
+    }
+
+    const result = filtered.map(bus => ({
+      name: bus.name,
+      type: bus.type,
+      price: Math.round(bus.pricePerKm * distance),
+      duration: duration,
+      seats: Math.floor(Math.random() * 30 + 1)
+    }));
+
+    res.json(result);
+
+  } catch (err) {
+    res.status(500).json({ error: "API failed" });
+  }
 });
 
 // --- AUTH ROUTES ---
@@ -185,7 +242,7 @@ app.get('/api/search/hotels', async (req, res) => {
 app.get('/api/search/cabs', (req, res) => {
   const { from, to, date, vehicleType } = req.query;
   const distance = Math.floor(Math.random() * 400 + 20);
-  const fares = MOCK_CABS.map(c => ({ ...c, estimatedFare: Math.max(c.minFare, distance * c.pricePerKm), distance }));
+  const fares = MOCK_CABS.map(c => ({c, estimatedFare: Math.max(c.minFare, distance * c.pricePerKm), distance }));
   res.json({ results: fares, distance });
 });
 
