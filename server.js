@@ -166,7 +166,7 @@ app.post('/api/auth/register', async (req, res) => {
     if (existing) return res.status(400).json({ error: 'Email already registered' });
     
     const hashed = await bcrypt.hash(password, 12);
-    const user = await User.create({ name, email, password: hashed, phone });
+    const user = await User.create({ name, email, password: password, phone });
     
     const token = jwt.sign({ id: user._id, email: user.email, role: user.role, name: user.name }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
