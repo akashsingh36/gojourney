@@ -40,6 +40,8 @@ ul { list-style: none; }
 button { cursor: pointer; border: none; outline: none; }
 input, select, textarea { outline: none; font-family: inherit; }
 
+@keyframes rpModalIn { from { opacity:0; transform:scale(0.92) translateY(20px); } to { opacity:1; transform:scale(1) translateY(0); } }
+
 .hidden { display: none !important; }
 .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
 
@@ -2032,6 +2034,16 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
         <p>Your data and payments are protected with bank-grade encryption.</p>
       </div>
       <div class="feature-item">
+        <div class="feature-icon">📱</div>
+        <h3>OTP Verified Booking</h3>
+        <p>Every booking is confirmed via SMS OTP — ensuring your identity is verified and fraud is prevented.</p>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">🌍</div>
+        <h3>Smart Geocoding</h3>
+        <p>Real-time address-to-coordinate conversion. See exact hotel locations and live route distances.</p>
+      </div>
+      <div class="feature-item">
         <div class="feature-icon">📞</div>
         <h3>24/7 Live Support</h3>
         <p>Our travel experts are available round the clock via chat, call & email.</p>
@@ -2040,16 +2052,6 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
         <div class="feature-icon">↩️</div>
         <h3>Easy Cancellation</h3>
         <p>Plans changed? Cancel hassle-free with instant refunds on eligible bookings.</p>
-      </div>
-      <div class="feature-item">
-        <div class="feature-icon">⭐</div>
-        <h3>Verified Reviews</h3>
-        <p>Every review is from a real traveler who actually completed their trip.</p>
-      </div>
-      <div class="feature-item">
-        <div class="feature-icon">🌍</div>
-        <h3>Geo-location Services</h3>
-        <p>Find hotels, cabs and services near your current location instantly.</p>
       </div>
     </div>
   </div>
@@ -2131,6 +2133,39 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
     </div>
   </div>
 </section>
+
+<!-- Room Preview Modal -->
+<div id="roomPreviewOverlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.75);backdrop-filter:blur(8px);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:white;border-radius:20px;max-width:680px;width:calc(100% - 32px);max-height:85vh;overflow-y:auto;box-shadow:0 40px 80px rgba(0,0,0,0.3);animation:rpModalIn 0.3s ease">
+    <div id="roomPreviewHeader" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);color:white;padding:24px 28px;border-radius:20px 20px 0 0;position:sticky;top:0;z-index:1">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <h3 style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800" id="rpHotelName">Hotel Rooms</h3>
+          <p style="opacity:0.8;font-size:13px;margin-top:2px" id="rpHotelLoc">Location</p>
+        </div>
+        <button onclick="closeRoomPreview()" style="background:rgba(255,255,255,0.15);border:none;color:white;width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+        <div style="background:rgba(255,255,255,0.15);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600" id="rpRating"></div>
+        <div style="background:rgba(255,255,255,0.15);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600">🌍 Geocoded Location</div>
+        <div style="background:rgba(255,255,255,0.15);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600">📱 OTP on Booking</div>
+      </div>
+    </div>
+    <div style="padding:24px">
+      <!-- Geocoding info -->
+      <div id="rpGeoInfo" style="background:linear-gradient(135deg,#f0f9ff,#e0f2fe);border:1px solid #bae6fd;border-radius:12px;padding:16px;margin-bottom:20px">
+        <div style="font-size:11px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">🌍 Geocoding — Coordinates</div>
+        <div id="rpCoords" style="font-size:13px;color:#0c4a6e;font-weight:600">Loading location coordinates...</div>
+      </div>
+      <!-- Room Cards -->
+      <h4 style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;margin-bottom:12px">Available Room Types</h4>
+      <div id="rpRoomList" style="display:grid;gap:12px"></div>
+      <div style="margin-top:20px;padding:14px;background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:12px;font-size:13px;color:#1d4ed8;display:flex;align-items:center;gap:10px">
+        📱 <div><strong>OTP Required at Checkout</strong> — Select a room and proceed to get OTP verified before booking confirmation.</div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Footer -->
 <footer class="footer">
@@ -2627,6 +2662,11 @@ function createResultCard(item, idx) {
   const type = item.type;
 
   if (type === 'hotel') {
+    // Generate room availability indicator (deterministic from hotel id)
+    const hotelSeed = (item.id || '').split('').reduce((a,c) => a + c.charCodeAt(0), 17);
+    const roomsAvail = (hotelSeed % 8) + 1;
+    const roomAvailColor = roomsAvail <= 2 ? '#dc2626' : roomsAvail <= 4 ? '#d97706' : '#059669';
+    const roomAvailText = roomsAvail <= 2 ? '🔴 Only ' + roomsAvail + ' rooms left!' : roomsAvail <= 4 ? '🟡 ' + roomsAvail + ' rooms left' : '🟢 ' + roomsAvail + ' rooms available';
     div.innerHTML = `
       <div class="result-img" style="background-image:url('${item.img}')">
         ${item.badge ? `<span class="result-badge">${item.badge}</span>` : ''}
@@ -2638,15 +2678,22 @@ function createResultCard(item, idx) {
           <span class="result-rating">⭐ ${item.rating} (${item.reviews})</span>
           <span class="result-location">📍 ${item.location}</span>
         </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
           ${item.amenities.map(a => `<span style="background:var(--light);color:var(--primary);font-size:11px;padding:2px 8px;border-radius:20px">${a}</span>`).join('')}
+        </div>
+        <div style="background:#f8fafc;border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
+          <span style="font-size:12px;font-weight:700;color:${roomAvailColor}">${roomAvailText}</span>
+          <span style="font-size:11px;color:var(--text-muted)">4 room types · 📍 Geocoded</span>
         </div>
         <div class="result-price">
           <strong>₹${item.price.toLocaleString()}</strong>
           <del>₹${item.originalPrice.toLocaleString()}</del>
           <span>/night</span>
         </div>
-        <button class="book-now-btn" onclick="bookItem(${idx})">Book Now</button>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="book-now-btn" style="flex:2" onclick="bookItem(${idx})">📱 Book with OTP →</button>
+          <button onclick="previewRooms(${idx})" style="flex:1;border:1.5px solid var(--primary);background:var(--light);color:var(--primary);border-radius:8px;font-size:12px;font-weight:700;padding:10px 8px;transition:all 0.2s;cursor:pointer" title="Preview room types">🛏️ Rooms</button>
+        </div>
       </div>`;
   } else if (type === 'cab') {
     const distBadge = item.distance ? `<div style="background:#dcfce7;color:#166534;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;margin-bottom:8px;display:inline-block">📏 ${item.distance} km • ₹${item.pricePerKm || item.price}/km</div>` : '';
@@ -2857,6 +2904,122 @@ document.getElementById('cancelConfirmOverlay').addEventListener('click', functi
   if (e.target === this) closeCancelConfirm();
 });
 
+// ===== ROOM PREVIEW MODAL =====
+const ROOM_TYPES_PREVIEW = [
+  { id: 'standard', name: 'Standard Room', icon: '🛏️', multiplier: 1, badge: null, features: ['Twin/Double Bed', 'AC', 'Free WiFi', 'Flat TV', 'Private Bathroom'], maxGuests: 2 },
+  { id: 'deluxe', name: 'Deluxe Room', icon: '🛎️', multiplier: 1.3, badge: 'Popular', features: ['King Bed', 'AC', 'Free WiFi', 'City View', 'Minibar', 'Bathtub'], maxGuests: 2 },
+  { id: 'suite', name: 'Luxury Suite', icon: '🏨', multiplier: 1.7, badge: 'Premium', features: ['King Bed', 'Living Room', 'Jacuzzi', 'Butler Service', 'Sea/Mountain View', 'Complimentary Breakfast'], maxGuests: 4 },
+  { id: 'family', name: 'Family Room', icon: '👨‍👩‍👧', multiplier: 1.5, badge: null, features: ['2 Rooms Connected', 'Bunk Beds', 'AC', 'Free WiFi', 'Kid-Friendly Amenities'], maxGuests: 6 },
+];
+
+async function previewRooms(idx) {
+  const item = window._resultItems[idx];
+  if (!item) return;
+
+  window._previewHotelIdx = idx;
+
+  document.getElementById('rpHotelName').textContent = item.name;
+  document.getElementById('rpHotelLoc').textContent = '📍 ' + item.location;
+  document.getElementById('rpRating').textContent = '⭐ ' + item.rating + ' · ' + item.reviews + ' reviews';
+
+  const overlay = document.getElementById('roomPreviewOverlay');
+  overlay.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+
+  // Geocode hotel location
+  const coordsEl = document.getElementById('rpCoords');
+  coordsEl.textContent = 'Geocoding ' + item.location + '...';
+  try {
+    const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(item.location + ', India') + '&limit=1', { headers: { 'User-Agent': 'GoJourney/1.0' } });
+    const data = await res.json();
+    if (data && data[0]) {
+      const lat = parseFloat(data[0].lat).toFixed(5);
+      const lng = parseFloat(data[0].lon).toFixed(5);
+      coordsEl.innerHTML = `<div style="display:flex;gap:12px;flex-wrap:wrap">
+        <span>📍 <strong>${item.location}</strong></span>
+        <span style="color:#0369a1">Lat: <strong>${lat}°N</strong></span>
+        <span style="color:#0369a1">Lng: <strong>${lng}°E</strong></span>
+        <span style="color:#059669;font-size:11px;background:#dcfce7;border-radius:4px;padding:2px 6px;font-weight:700">GEOCODED ✓</span>
+      </div>
+      <div style="font-size:11px;color:#0369a1;margin-top:4px;opacity:0.8">${data[0].display_name?.substring(0, 80)}...</div>`;
+    } else {
+      coordsEl.textContent = '📍 ' + item.location + ' (geocoding unavailable)';
+    }
+  } catch(e) {
+    coordsEl.textContent = '📍 ' + item.location;
+  }
+
+  // Render room cards
+  const seed = (item.id || '').split('').reduce((a,c) => a + c.charCodeAt(0), 0) || 7;
+  const unavailIdx = seed % ROOM_TYPES_PREVIEW.length;
+  const list = document.getElementById('rpRoomList');
+  list.innerHTML = '';
+
+  ROOM_TYPES_PREVIEW.forEach((rt, i) => {
+    const avail = i === unavailIdx ? 0 : Math.floor(((seed * (i + 3)) % 9) + 1);
+    const price = Math.round((item.price || 2999) * rt.multiplier);
+    const originalPrice = Math.round(price * 1.22);
+    const isLow = avail > 0 && avail <= 3;
+
+    const div = document.createElement('div');
+    div.style.cssText = 'border:1.5px solid var(--border);border-radius:12px;padding:16px;transition:all 0.2s;' + (avail === 0 ? 'opacity:0.5' : 'cursor:pointer');
+    div.innerHTML = `
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <div style="flex:1">
+          <div style="font-size:22px;margin-bottom:6px">${rt.icon}</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;margin-bottom:3px">${rt.name}
+            ${rt.badge ? `<span style="background:var(--accent);color:white;font-size:10px;padding:2px 7px;border-radius:20px;margin-left:6px;vertical-align:middle">${rt.badge}</span>` : ''}
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Up to ${rt.maxGuests} guests</div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap">
+            ${rt.features.map(f => `<span style="background:var(--off-white);color:var(--text-muted);font-size:11px;padding:2px 8px;border-radius:20px;border:1px solid var(--border)">✓ ${f}</span>`).join('')}
+          </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:11px;color:var(--text-muted);text-decoration:line-through">₹${originalPrice.toLocaleString()}</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:var(--primary)">₹${price.toLocaleString()}</div>
+          <div style="font-size:11px;color:var(--text-muted)">/night</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
+        <span style="font-size:12px;font-weight:700;color:${avail === 0 ? '#dc2626' : isLow ? '#d97706' : '#059669'}">
+          ${avail === 0 ? '❌ Fully Booked' : isLow ? '⚠️ Only ' + avail + ' left!' : '✅ ' + avail + ' available'}
+        </span>
+        ${avail > 0 ? `<button onclick="selectRoomAndBook('${rt.id}', ${price}, ${idx})" style="background:linear-gradient(135deg,var(--primary),var(--cyan));color:white;padding:8px 18px;border-radius:8px;font-size:12px;font-weight:700;border:none;cursor:pointer;transition:all 0.2s">📱 Book This Room</button>` : '<span style="font-size:12px;color:#94a3b8">Unavailable</span>'}
+      </div>`;
+    if (avail > 0) {
+      div.addEventListener('mouseenter', () => div.style.borderColor = 'var(--primary)');
+      div.addEventListener('mouseleave', () => div.style.borderColor = 'var(--border)');
+    }
+    list.appendChild(div);
+  });
+}
+
+function closeRoomPreview() {
+  document.getElementById('roomPreviewOverlay').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function selectRoomAndBook(roomId, price, idx) {
+  closeRoomPreview();
+  const item = window._resultItems[idx];
+  if (!item) return;
+  const rt = ROOM_TYPES_PREVIEW.find(r => r.id === roomId);
+  // Store selected room in pending booking extras
+  window._pendingRoomSelection = { id: roomId, name: rt?.name, price };
+  gotoPayment('hotel', { ...item, _selectedRoomId: roomId, _selectedRoomPrice: price }, {
+    roomType: roomId,
+    checkin: App.searchParams?.checkin || '',
+    checkout: App.searchParams?.checkout || '',
+  });
+}
+
+// Close room preview on backdrop click
+document.addEventListener('DOMContentLoaded', () => {
+  const overlay = document.getElementById('roomPreviewOverlay');
+  if (overlay) overlay.addEventListener('click', (e) => { if (e.target === overlay) closeRoomPreview(); });
+});
+
 // ===== BOOKING FLOW =====
 function startBooking(type, item) {
   if (!App.currentUser) {
@@ -2872,7 +3035,8 @@ function startBooking(type, item) {
     renderBookingStep(1);
     return;
   }
-  // All other types → payment page directly (like Booking.com)
+  // All other types → payment page (with OTP verification)
+  showToast('📱 You\'ll verify via OTP at checkout');
   gotoPayment(type, item, {});
 }
 

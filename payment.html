@@ -57,10 +57,87 @@ button { cursor: pointer; border: none; outline: none; font-family: inherit; }
 .pay-card-body { padding: 24px; }
 
 /* ===== MAP ===== */
-#routeMap { width: 100%; height: 260px; border-radius: 10px; border: 1px solid var(--border); z-index: 1; }
+#routeMap { width: 100%; height: 280px; border-radius: 10px; border: 1px solid var(--border); z-index: 1; }
 .map-info { display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
 .map-info-pill { background: var(--light); color: var(--primary); font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 50px; display: flex; align-items: center; gap: 4px; }
 .map-info-pill.orange { background: #fff7ed; color: var(--accent); }
+.map-info-pill.green { background: #dcfce7; color: #166534; }
+.map-info-pill.loading { opacity: 0.6; animation: pulse 1.2s infinite; }
+@keyframes pulse { 0%,100%{opacity:0.6} 50%{opacity:1} }
+
+/* ===== HOTEL ROOM CARDS ===== */
+.room-cards { display: grid; gap: 12px; margin-bottom: 8px; }
+.room-card {
+  border: 2px solid var(--border); border-radius: 12px; padding: 16px;
+  cursor: pointer; transition: var(--transition); position: relative; overflow: hidden;
+}
+.room-card:hover { border-color: var(--primary-light); background: var(--light); transform: translateY(-1px); }
+.room-card.selected { border-color: var(--primary); background: var(--light); }
+.room-card.unavailable { opacity: 0.5; cursor: not-allowed; border-style: dashed; }
+.room-card.unavailable:hover { transform: none; background: white; border-color: var(--border); }
+.room-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.room-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; }
+.room-price-tag { text-align: right; }
+.room-price-tag .price { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; color: var(--primary); }
+.room-price-tag .per { font-size: 11px; color: var(--text-muted); }
+.room-price-tag .original { font-size: 12px; color: var(--text-muted); text-decoration: line-through; }
+.room-features { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.room-feature { background: var(--off-white); color: var(--text-muted); font-size: 11px; padding: 3px 8px; border-radius: 20px; border: 1px solid var(--border); }
+.room-avail { font-size: 12px; font-weight: 700; }
+.room-avail.low { color: #dc2626; }
+.room-avail.good { color: #059669; }
+.room-badge { position: absolute; top: 12px; right: 12px; background: var(--accent); color: white; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; }
+.room-selected-check { position: absolute; top: 12px; left: 12px; width: 22px; height: 22px; background: var(--primary); border-radius: 50%; display: none; align-items: center; justify-content: center; color: white; font-size: 12px; }
+.room-card.selected .room-selected-check { display: flex; }
+
+/* ===== GEOCODING WIDGET ===== */
+.geo-widget { background: linear-gradient(135deg, #f0f9ff, #e0f2fe); border: 1px solid #bae6fd; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+.geo-widget-title { font-size: 12px; font-weight: 700; color: #0369a1; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.geo-result { display: flex; gap: 12px; flex-wrap: wrap; }
+.geo-chip { background: white; border: 1px solid #bae6fd; border-radius: 8px; padding: 8px 12px; font-size: 12px; color: #0369a1; display: flex; align-items: center; gap: 6px; }
+.geo-chip strong { color: var(--text); }
+
+/* ===== OTP OVERLAY ===== */
+#otpOverlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(15,23,42,0.8); backdrop-filter: blur(8px);
+  z-index: 9999; align-items: center; justify-content: center;
+}
+#otpOverlay.show { display: flex; }
+.otp-modal {
+  background: white; border-radius: 24px; padding: 40px 36px;
+  max-width: 420px; width: calc(100% - 32px);
+  box-shadow: 0 40px 80px rgba(0,0,0,0.3);
+  text-align: center; animation: modalIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes modalIn { from { opacity:0; transform:scale(0.85) translateY(20px); } to { opacity:1; transform:scale(1) translateY(0); } }
+.otp-icon { width: 72px; height: 72px; background: linear-gradient(135deg, var(--primary), var(--cyan)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 20px; box-shadow: 0 8px 24px rgba(10,77,163,0.3); }
+.otp-title { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+.otp-sub { font-size: 14px; color: var(--text-muted); margin-bottom: 28px; line-height: 1.5; }
+.otp-boxes { display: flex; gap: 10px; justify-content: center; margin-bottom: 24px; }
+.otp-box {
+  width: 52px; height: 60px; border: 2px solid var(--border);
+  border-radius: 12px; font-size: 24px; font-weight: 800;
+  text-align: center; font-family: 'Syne', sans-serif;
+  transition: var(--transition); color: var(--primary);
+  background: var(--off-white);
+}
+.otp-box:focus { border-color: var(--primary); background: var(--light); box-shadow: 0 0 0 3px rgba(10,77,163,0.15); outline: none; }
+.otp-box.filled { border-color: var(--primary); background: var(--light); }
+.otp-verify-btn {
+  width: 100%; background: linear-gradient(135deg, var(--primary), var(--cyan));
+  color: white; padding: 15px; border-radius: 12px;
+  font-size: 16px; font-weight: 700; font-family: 'Syne', sans-serif;
+  transition: var(--transition); margin-bottom: 14px;
+  box-shadow: 0 4px 15px rgba(10,77,163,0.3);
+}
+.otp-verify-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(10,77,163,0.4); }
+.otp-verify-btn:disabled { background: #94a3b8; transform: none; box-shadow: none; cursor: not-allowed; }
+.otp-resend { font-size: 13px; color: var(--text-muted); }
+.otp-resend button { color: var(--primary); font-weight: 700; background: none; padding: 0; font-size: 13px; }
+.otp-demo-hint { margin-top: 14px; background: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #92400e; }
+.otp-timer { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+.otp-timer span { color: var(--primary); font-weight: 700; }
 
 /* ===== PRICE BREAKDOWN ===== */
 .price-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; font-size: 14px; border-bottom: 1px dashed var(--border); }
@@ -82,6 +159,10 @@ button { cursor: pointer; border: none; outline: none; font-family: inherit; }
 }
 .form-group input:focus, .form-group select:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 3px rgba(10,77,163,0.1); }
 .form-group.full { grid-column: 1 / -1; }
+.phone-group { position: relative; }
+.phone-verify-badge { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 20px; }
+.phone-verify-badge.verified { background: #dcfce7; color: #166534; }
+.phone-verify-badge.unverified { background: #fff7ed; color: #c2410c; }
 
 /* ===== PAYMENT METHODS ===== */
 .pay-methods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
@@ -115,22 +196,24 @@ button { cursor: pointer; border: none; outline: none; font-family: inherit; }
 .pay-btn { width: 100%; background: linear-gradient(135deg, var(--green), #10b981); color: white; padding: 16px; border-radius: 10px; font-size: 17px; font-weight: 800; transition: var(--transition); margin-top: 8px; font-family: 'Syne', sans-serif; letter-spacing: 0.3px; display: flex; align-items: center; justify-content: center; gap: 10px; }
 .pay-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(5,150,105,0.4); }
 .pay-btn:disabled { background: #94a3b8; transform: none; box-shadow: none; cursor: not-allowed; }
-.ssl-row { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: var(--text-muted); margin-top: 10px; }
+.ssl-row { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: var(--text-muted); margin-top: 10px; flex-wrap: wrap; }
+
 .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--primary); font-size: 14px; font-weight: 600; text-decoration: none; margin-bottom: 20px; transition: var(--transition); }
 .back-link:hover { color: var(--primary-dark); }
 
 /* ===== SUCCESS ===== */
-#successScreen { display: none; max-width: 560px; margin: 60px auto; background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(10,77,163,0.15); overflow: hidden; text-align: center; }
+#successScreen { display: none; max-width: 580px; margin: 60px auto; background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(10,77,163,0.15); overflow: hidden; text-align: center; }
 .success-header { background: linear-gradient(135deg, var(--green), #10b981); padding: 40px; color: white; }
 .success-body { padding: 32px; }
 .success-id { display: inline-block; background: var(--light); color: var(--primary); font-weight: 800; font-size: 18px; padding: 10px 24px; border-radius: 50px; margin: 12px 0; font-family: 'Syne', sans-serif; }
 .success-detail { font-size: 14px; color: var(--text-muted); margin-bottom: 6px; }
 .success-actions { display: flex; gap: 12px; margin-top: 24px; justify-content: center; flex-wrap: wrap; }
-.btn-primary { background: linear-gradient(135deg, var(--primary), var(--cyan)); color: white; padding: 12px 28px; border-radius: 50px; font-weight: 700; font-size: 14px; transition: var(--transition); display: inline-flex; align-items: center; gap: 6px; }
+.btn-primary { background: linear-gradient(135deg, var(--primary), var(--cyan)); color: white; padding: 12px 28px; border-radius: 50px; font-weight: 700; font-size: 14px; transition: var(--transition); display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
 .btn-outline { border: 2px solid var(--primary); color: var(--primary); padding: 12px 28px; border-radius: 50px; font-weight: 700; font-size: 14px; background: transparent; transition: var(--transition); display: inline-flex; align-items: center; gap: 6px; }
+.otp-verified-strip { background: linear-gradient(135deg, #dcfce7, #bbf7d0); border: 1px solid #86efac; border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; gap: 10px; margin-bottom: 16px; font-size: 13px; font-weight: 600; color: #166534; }
 
 /* ===== TOAST ===== */
-#toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 24px; border-radius: 50px; font-size: 14px; font-weight: 600; z-index: 9999; box-shadow: 0 4px 20px rgba(0,0,0,0.3); display: none; white-space: nowrap; }
+#toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 24px; border-radius: 50px; font-size: 14px; font-weight: 600; z-index: 9999; box-shadow: 0 4px 20px rgba(0,0,0,0.3); display: none; white-space: nowrap; max-width: 90vw; }
 #toast.show { display: block; animation: toastIn 0.3s ease; }
 @keyframes toastIn { from { opacity:0; transform: translateX(-50%) translateY(20px); } to { opacity:1; transform: translateX(-50%) translateY(0); } }
 
@@ -140,12 +223,37 @@ button { cursor: pointer; border: none; outline: none; font-family: inherit; }
 .spinner { width: 48px; height: 48px; border: 4px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ===== UPI ANIMATION ===== */
-.upi-anim { text-align: center; padding: 20px; }
-.upi-anim .upi-qr { width: 160px; height: 160px; background: #f1f5f9; border: 2px dashed var(--border); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 80px; }
-
 /* ===== STICKY SUMMARY ===== */
 .summary-sticky { position: sticky; top: 20px; }
+
+/* ===== AVAILABILITY TABLE ===== */
+.avail-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.avail-table th { background: var(--off-white); padding: 8px 12px; text-align: left; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; border-bottom: 2px solid var(--border); }
+.avail-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.avail-table tr:last-child td { border-bottom: none; }
+.avail-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+.avail-dot.green { background: #10b981; }
+.avail-dot.yellow { background: #f59e0b; }
+.avail-dot.red { background: #ef4444; }
+
+.select-room-btn { background: linear-gradient(135deg, var(--primary), var(--cyan)); color: white; padding: 7px 14px; border-radius: 6px; font-size: 12px; font-weight: 700; transition: var(--transition); }
+.select-room-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(10,77,163,0.3); }
+.select-room-btn.selected { background: var(--green); }
+
+/* OTP step indicator */
+.otp-steps { display: flex; gap: 0; margin-bottom: 20px; }
+.otp-step { flex: 1; padding: 6px 0; text-align: center; font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.5); border-bottom: 2px solid rgba(255,255,255,0.2); }
+.otp-step.active { color: white; border-bottom-color: var(--accent); }
+.otp-step.done { color: rgba(255,255,255,0.8); border-bottom-color: rgba(255,255,255,0.4); }
+
+/* Route info box */
+.route-info-box { background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 1px solid #86efac; border-radius: 12px; padding: 16px; margin-top: 12px; }
+.route-stat { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.route-stat:last-child { margin-bottom: 0; }
+.route-stat-icon { width: 32px; height: 32px; background: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.route-stat-info { flex: 1; }
+.route-stat-label { font-size: 10px; font-weight: 700; color: #166534; text-transform: uppercase; letter-spacing: 0.4px; }
+.route-stat-value { font-size: 14px; font-weight: 700; color: var(--text); }
 </style>
 </head>
 <body>
@@ -153,26 +261,60 @@ button { cursor: pointer; border: none; outline: none; font-family: inherit; }
 <!-- Header -->
 <div class="pay-header">
   <a href="index.html" class="logo">✈ Go<span>Journey</span></a>
-  <div class="secure-badge">🔒 Secure Payment</div>
+  <div style="display:flex;gap:8px;margin-left:auto;align-items:center;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:5px;color:rgba(255,255,255,0.8);font-size:12px;font-weight:600;background:rgba(255,255,255,0.12);padding:5px 12px;border-radius:50px">📱 OTP Secured</div>
+    <div class="secure-badge">🔒 SSL Encrypted</div>
+  </div>
 </div>
 
 <!-- Loading Overlay -->
 <div class="loading-overlay" id="loadingOverlay">
   <div class="spinner"></div>
-  <p style="font-weight:600;color:var(--text)">Processing your payment...</p>
+  <p style="font-weight:600;color:var(--text)" id="loadingMsg">Processing your payment...</p>
 </div>
 
 <!-- Toast -->
 <div id="toast"></div>
+
+<!-- OTP MODAL -->
+<div id="otpOverlay">
+  <div class="otp-modal">
+    <div class="otp-icon">📱</div>
+    <h2 class="otp-title">Verify Your Number</h2>
+    <p class="otp-sub" id="otpSubText">We've sent a 6-digit OTP to your mobile number for booking confirmation.</p>
+
+    <div class="otp-boxes" id="otpBoxes">
+      <input class="otp-box" type="tel" maxlength="1" id="otp0" oninput="otpInput(this,0)" onkeydown="otpKeydown(event,0)">
+      <input class="otp-box" type="tel" maxlength="1" id="otp1" oninput="otpInput(this,1)" onkeydown="otpKeydown(event,1)">
+      <input class="otp-box" type="tel" maxlength="1" id="otp2" oninput="otpInput(this,2)" onkeydown="otpKeydown(event,2)">
+      <input class="otp-box" type="tel" maxlength="1" id="otp3" oninput="otpInput(this,3)" onkeydown="otpKeydown(event,3)">
+      <input class="otp-box" type="tel" maxlength="1" id="otp4" oninput="otpInput(this,4)" onkeydown="otpKeydown(event,4)">
+      <input class="otp-box" type="tel" maxlength="1" id="otp5" oninput="otpInput(this,5)" onkeydown="otpKeydown(event,5)">
+    </div>
+
+    <button class="otp-verify-btn" id="otpVerifyBtn" onclick="verifyOTP()" disabled>Verify & Confirm Booking</button>
+    <div class="otp-resend">
+      Didn't receive it? <button id="resendBtn" onclick="resendOTP()" disabled>Resend OTP</button>
+    </div>
+    <div class="otp-timer" id="otpTimer">Resend available in <span id="timerCount">30</span>s</div>
+
+    <div class="otp-demo-hint">
+      🧪 <strong>Demo Mode:</strong> Use OTP <strong>123456</strong> to confirm booking. In production, real SMS is sent via MSG91.
+    </div>
+  </div>
+</div>
 
 <!-- SUCCESS SCREEN -->
 <div id="successScreen">
   <div class="success-header">
     <div style="font-size:64px;margin-bottom:12px">🎉</div>
     <h2 style="font-size:26px;margin-bottom:4px">Booking Confirmed!</h2>
-    <p style="opacity:0.9">Your journey is set. Have a great trip!</p>
+    <p style="opacity:0.9">Your journey is set. OTP-verified & secured.</p>
   </div>
   <div class="success-body">
+    <div style="background:#dcfce7;border-radius:10px;padding:12px;display:flex;align-items:center;gap:10px;margin-bottom:16px;font-size:13px;font-weight:600;color:#166534">
+      ✅ Identity verified via OTP — Booking authenticated
+    </div>
     <p style="color:var(--text-muted);font-size:14px">Your Booking ID</p>
     <div class="success-id" id="successId">GJ000000</div>
     <div id="successDetails" style="margin-top:16px;text-align:left;background:var(--off-white);border-radius:10px;padding:16px"></div>
@@ -180,7 +322,7 @@ button { cursor: pointer; border: none; outline: none; font-family: inherit; }
       <a href="index.html" class="btn-primary">🏠 Back to Home</a>
       <button class="btn-outline" onclick="printReceipt()">🖨️ Print Receipt</button>
     </div>
-    <p style="font-size:12px;color:var(--text-muted);margin-top:16px">A confirmation has been saved to your account. Check "My Bookings" in your dashboard.</p>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:16px">Booking saved to your account. Check "My Bookings" in dashboard.</p>
   </div>
 </div>
 
@@ -191,21 +333,30 @@ button { cursor: pointer; border: none; outline: none; font-family: inherit; }
   <div>
     <a href="index.html" class="back-link">← Back to GoJourney</a>
 
-    <!-- Traveler Details -->
+    <!-- Step 1: Traveler Details + Phone Verify -->
     <div class="pay-card">
       <div class="pay-card-header">
         <div class="step-badge">1</div>
         <h3>Traveler Details</h3>
+        <div id="phoneVerifiedBadge" style="margin-left:auto;display:none;background:rgba(255,255,255,0.2);border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700">✅ Phone Verified</div>
       </div>
       <div class="pay-card-body">
+        <div id="otpVerifiedStrip" style="display:none">
+          <div class="otp-verified-strip">
+            ✅ Mobile number verified via OTP — Your identity is confirmed
+          </div>
+        </div>
         <div class="form-grid">
           <div class="form-group">
             <label>Full Name *</label>
             <input type="text" id="travelerName" placeholder="As on ID proof">
           </div>
-          <div class="form-group">
+          <div class="form-group" style="position:relative">
             <label>Mobile Number *</label>
-            <input type="tel" id="travelerPhone" placeholder="+91 98765 43210" maxlength="13">
+            <div style="display:flex;gap:8px">
+              <input type="tel" id="travelerPhone" placeholder="+91 98765 43210" maxlength="13" style="flex:1">
+              <button onclick="sendOTP()" id="sendOtpBtn" style="background:linear-gradient(135deg,var(--primary),var(--cyan));color:white;padding:0 14px;border-radius:8px;font-size:12px;font-weight:700;white-space:nowrap;flex-shrink:0;transition:var(--transition)" title="Send OTP to verify">📱 Get OTP</button>
+            </div>
           </div>
           <div class="form-group full">
             <label>Email Address *</label>
@@ -216,14 +367,63 @@ button { cursor: pointer; border: none; outline: none; font-family: inherit; }
       </div>
     </div>
 
-    <!-- Route Map (shown for cabs/buses/shuttles) -->
-    <div class="pay-card" id="mapCard" style="display:none">
-      <div class="pay-card-header">
-        <div class="step-badge">2</div>
-        <h3 id="mapTitle">Route Map</h3>
+    <!-- Hotel Room Availability (shown only for hotels) -->
+    <div class="pay-card" id="roomAvailCard" style="display:none">
+      <div class="pay-card-header" style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">
+        <div class="step-badge">🛏</div>
+        <h3>Room Availability & Selection</h3>
+        <span style="margin-left:auto;font-size:11px;background:rgba(255,255,255,0.2);padding:3px 10px;border-radius:20px;font-weight:700" id="roomAvailStatus">Checking...</span>
       </div>
       <div class="pay-card-body">
+        <div id="roomCards" class="room-cards">
+          <!-- populated by JS -->
+        </div>
+        <div id="selectedRoomSummary" style="display:none;background:var(--light);border:1.5px solid var(--primary);border-radius:10px;padding:14px;font-size:14px">
+          <strong style="color:var(--primary)">✅ Selected:</strong> <span id="selectedRoomName">—</span>
+          <span style="color:var(--text-muted);margin-left:8px;font-size:12px" id="selectedRoomPrice"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Route Map (shown for cabs/buses/shuttles) -->
+    <div class="pay-card" id="mapCard" style="display:none">
+      <div class="pay-card-header" style="background:linear-gradient(135deg,#0f172a,#1e3a5f)">
+        <div class="step-badge">🗺</div>
+        <h3 id="mapTitle">Route Map & Distance</h3>
+        <span style="margin-left:auto;font-size:11px;background:rgba(255,255,255,0.15);padding:3px 10px;border-radius:20px;font-weight:700" id="mapStatusBadge">Geocoding...</span>
+      </div>
+      <div class="pay-card-body">
+        <!-- Geocoding display -->
+        <div id="geoWidget" class="geo-widget" style="display:none">
+          <div class="geo-widget-title">🌍 Geocoding Results — Address ↔ Coordinates</div>
+          <div class="geo-result" id="geoResult">
+            <!-- populated by JS -->
+          </div>
+        </div>
         <div id="routeMap"></div>
+        <div class="route-info-box" id="routeInfoBox" style="display:none">
+          <div class="route-stat">
+            <div class="route-stat-icon">📏</div>
+            <div class="route-stat-info">
+              <div class="route-stat-label">Distance</div>
+              <div class="route-stat-value" id="statDistance">—</div>
+            </div>
+          </div>
+          <div class="route-stat">
+            <div class="route-stat-icon">⏱️</div>
+            <div class="route-stat-info">
+              <div class="route-stat-label">Estimated Duration</div>
+              <div class="route-stat-value" id="statDuration">—</div>
+            </div>
+          </div>
+          <div class="route-stat">
+            <div class="route-stat-icon">🛣️</div>
+            <div class="route-stat-info">
+              <div class="route-stat-label">Route</div>
+              <div class="route-stat-value" id="statRoute">—</div>
+            </div>
+          </div>
+        </div>
         <div class="map-info" id="mapInfo"></div>
       </div>
     </div>
@@ -237,7 +437,7 @@ button { cursor: pointer; border: none; outline: none; font-family: inherit; }
       <div class="pay-card-body">
         <!-- Coupon -->
         <div class="coupon-row">
-          <input type="text" id="couponInput" placeholder="🎟️ Enter coupon code (HOTEL30, CAB20...)">
+          <input type="text" id="couponInput" placeholder="🎟️ Coupon: HOTEL30, CAB20, TOUR2K, FIRST10...">
           <button onclick="applyCoupon()">Apply</button>
         </div>
         <div class="coupon-applied" id="couponApplied"></div>
@@ -255,7 +455,6 @@ button { cursor: pointer; border: none; outline: none; font-family: inherit; }
           </div>
         </div>
         <div id="payFields">
-          <!-- UPI by default -->
           <div class="form-group">
             <label>UPI ID</label>
             <input type="text" id="upiId" placeholder="yourname@paytm / @gpay / @phonepe">
@@ -263,12 +462,17 @@ button { cursor: pointer; border: none; outline: none; font-family: inherit; }
           <p style="font-size:12px;color:var(--text-muted);margin-top:8px">Supported: Google Pay, PhonePe, Paytm, BHIM, Amazon Pay</p>
         </div>
 
+        <!-- OTP requirement notice -->
+        <div id="otpRequiredNotice" style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:10px;padding:12px 16px;margin:14px 0;font-size:13px;color:#1d4ed8;display:flex;align-items:center;gap:10px">
+          📱 <div><strong>OTP Verification Required</strong> — Enter your phone number above and click "Get OTP" to proceed with payment.</div>
+        </div>
+
         <!-- Pay Button -->
-        <button class="pay-btn" id="payBtn" onclick="processPayment()">
-          🔒 Pay <span id="payBtnAmt">₹0</span> Securely
+        <button class="pay-btn" id="payBtn" onclick="processPayment()" disabled>
+          🔒 Verify OTP & Pay <span id="payBtnAmt">₹0</span>
         </button>
         <div class="ssl-row">
-          🔒 256-bit SSL Encryption &nbsp;|&nbsp; PCI DSS Compliant &nbsp;|&nbsp; Instant Confirmation
+          🔒 256-bit SSL &nbsp;|&nbsp; 📱 OTP Secured &nbsp;|&nbsp; ✅ PCI DSS Compliant
         </div>
       </div>
     </div>
@@ -305,6 +509,10 @@ let calculatedPrice = 0;
 let distanceKm = 0;
 let map = null;
 let routeLayer = null;
+let otpVerified = false;
+let generatedOTP = '123456'; // demo OTP (in production: server-generated)
+let otpTimerInterval = null;
+let selectedRoom = null;
 
 const COUPONS = {
   'HOTEL30': { type: 'percent', value: 30, service: 'hotel', desc: '30% off hotels' },
@@ -315,7 +523,35 @@ const COUPONS = {
   'SHUTTLE15':{ type: 'percent',value: 15, service: 'shuttle',desc:'15% off shuttles' },
 };
 
-// ===== INIT =====
+// ===== ROOM TYPES DATA =====
+const ROOM_TYPES = [
+  {
+    id: 'standard', name: 'Standard Room', icon: '🛏️',
+    multiplier: 1, badge: null,
+    features: ['Twin/Double Bed', 'AC', 'Free WiFi', 'Flat TV', 'Private Bathroom'],
+    maxGuests: 2,
+  },
+  {
+    id: 'deluxe', name: 'Deluxe Room', icon: '🛎️',
+    multiplier: 1.3, badge: 'Popular',
+    features: ['King Bed', 'AC', 'Free WiFi', 'City/Garden View', 'Minibar', 'Bathtub'],
+    maxGuests: 2,
+  },
+  {
+    id: 'suite', name: 'Luxury Suite', icon: '🏨',
+    multiplier: 1.7, badge: 'Best Value',
+    features: ['King Bed', 'Living Room', 'Jacuzzi', 'Butler Service', 'Sea/Mountain View', 'Complimentary Breakfast'],
+    maxGuests: 4,
+  },
+  {
+    id: 'family', name: 'Family Room', icon: '👨‍👩‍👧',
+    multiplier: 1.5, badge: null,
+    features: ['2 Rooms Connected', 'Bunk Beds', 'AC', 'Free WiFi', 'Kid-Friendly Amenities'],
+    maxGuests: 6,
+  },
+];
+
+// ===== HELPERS =====
 function lsGet(key, fallback) {
   try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch(e) { return fallback; }
 }
@@ -323,6 +559,7 @@ function lsSet(key, val) {
   try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {} 
 }
 
+// ===== INIT =====
 window.addEventListener('load', () => {
   bookingData = lsGet('gj_pendingBooking', null);
   if (!bookingData) {
@@ -330,7 +567,6 @@ window.addEventListener('load', () => {
     return;
   }
 
-  // Pre-fill user info
   const user = lsGet('gj_currentUser', null);
   if (user) {
     document.getElementById('travelerName').value = user.name || '';
@@ -338,16 +574,377 @@ window.addEventListener('load', () => {
     document.getElementById('travelerPhone').value = user.phone || '';
   }
 
-  // Pre-fill coupon if saved
-  if (bookingData.appliedCoupon) {
-    appliedCoupon = bookingData.appliedCoupon;
-  }
+  if (bookingData.appliedCoupon) appliedCoupon = bookingData.appliedCoupon;
 
   renderSummary();
   renderExtraDetails();
   initMap();
   updatePriceBreakdown();
+
+  // Show hotel room availability card
+  if (bookingData.type === 'hotel') {
+    document.getElementById('roomAvailCard').style.display = 'block';
+    renderRoomAvailability();
+  }
 });
+
+// ===== ROOM AVAILABILITY =====
+function renderRoomAvailability() {
+  const item = bookingData.item;
+  const checkin  = bookingData.checkin  || document.getElementById('fCheckin')?.value  || '';
+  const checkout = bookingData.checkout || document.getElementById('fCheckout')?.value || '';
+  const nights   = calcNights(checkin, checkout) || 1;
+  const basePrice = item.price || 2999;
+
+  // Simulate availability (pseudo-random based on hotel ID)
+  const seed = (item.id || '').split('').reduce((a,c) => a + c.charCodeAt(0), 0) || 7;
+  const availCounts = ROOM_TYPES.map((rt, i) => {
+    const count = Math.floor(((seed * (i + 3)) % 9) + 1);
+    return count;
+  });
+  // Randomly make one room unavailable
+  const unavailIdx = seed % ROOM_TYPES.length;
+
+  const container = document.getElementById('roomCards');
+  container.innerHTML = '';
+
+  ROOM_TYPES.forEach((rt, i) => {
+    const isUnavail = availCounts[i] === 0 || i === unavailIdx;
+    const avail = isUnavail ? 0 : availCounts[i];
+    const roomPrice = Math.round(basePrice * rt.multiplier);
+    const originalPrice = Math.round(roomPrice * 1.2);
+    const isLow = avail > 0 && avail <= 3;
+
+    const div = document.createElement('div');
+    div.className = 'room-card' + (isUnavail ? ' unavailable' : '') + (selectedRoom?.id === rt.id ? ' selected' : '');
+    div.id = 'roomcard-' + rt.id;
+    div.innerHTML = `
+      <div class="room-selected-check">✓</div>
+      ${rt.badge ? `<div class="room-badge">${rt.badge}</div>` : ''}
+      <div class="room-header">
+        <div>
+          <div style="font-size:22px;margin-bottom:6px">${rt.icon}</div>
+          <div class="room-name">${rt.name}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Up to ${rt.maxGuests} guests</div>
+        </div>
+        <div class="room-price-tag">
+          <div class="original">₹${originalPrice.toLocaleString()}</div>
+          <div class="price">₹${roomPrice.toLocaleString()}</div>
+          <div class="per">/night</div>
+          ${nights > 1 ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px">₹${(roomPrice*nights).toLocaleString()} total</div>` : ''}
+        </div>
+      </div>
+      <div class="room-features">
+        ${rt.features.map(f => `<span class="room-feature">✓ ${f}</span>`).join('')}
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
+        <div class="room-avail ${isUnavail ? '' : isLow ? 'low' : 'good'}">
+          ${isUnavail
+            ? '❌ Fully Booked'
+            : isLow
+              ? `⚠️ Only ${avail} left!`
+              : `✅ ${avail} rooms available`}
+        </div>
+        ${!isUnavail ? `<button class="select-room-btn ${selectedRoom?.id === rt.id ? 'selected' : ''}" onclick="selectRoom('${rt.id}', ${roomPrice}, ${nights})" id="selbtn-${rt.id}">
+          ${selectedRoom?.id === rt.id ? '✓ Selected' : 'Select'}
+        </button>` : '<span style="font-size:12px;color:#94a3b8">Unavailable</span>'}
+      </div>`;
+    if (!isUnavail) {
+      div.onclick = (e) => {
+        if (!e.target.closest('button')) selectRoom(rt.id, roomPrice, nights);
+      };
+    }
+    container.appendChild(div);
+  });
+
+  document.getElementById('roomAvailStatus').textContent = ROOM_TYPES.filter((_, i) => i !== unavailIdx).length + ' types available';
+}
+
+function selectRoom(roomId, price, nights) {
+  const rt = ROOM_TYPES.find(r => r.id === roomId);
+  if (!rt) return;
+
+  selectedRoom = { id: roomId, name: rt.name, price, nights };
+  bookingData._selectedRoom = selectedRoom;
+
+  // Update UI
+  document.querySelectorAll('.room-card').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('.select-room-btn').forEach(b => { b.textContent = 'Select'; b.classList.remove('selected'); });
+
+  const card = document.getElementById('roomcard-' + roomId);
+  if (card) card.classList.add('selected');
+  const btn = document.getElementById('selbtn-' + roomId);
+  if (btn) { btn.textContent = '✓ Selected'; btn.classList.add('selected'); }
+
+  // Show summary
+  document.getElementById('selectedRoomSummary').style.display = 'block';
+  document.getElementById('selectedRoomName').textContent = rt.name + ' — ' + rt.icon;
+  document.getElementById('selectedRoomPrice').textContent = `₹${price.toLocaleString()}/night × ${nights} night${nights>1?'s':''} = ₹${(price*nights).toLocaleString()}`;
+
+  updatePriceBreakdown();
+  showToast('✅ ' + rt.name + ' selected!');
+}
+
+function calcNights(ci, co) {
+  if (!ci || !co) return 1;
+  const diff = (new Date(co) - new Date(ci)) / 86400000;
+  return diff > 0 ? diff : 1;
+}
+
+// ===== OTP FLOW =====
+function sendOTP() {
+  const phone = document.getElementById('travelerPhone').value.trim();
+  if (!phone || phone.length < 10) {
+    showToast('⚠️ Please enter a valid mobile number first');
+    document.getElementById('travelerPhone').focus();
+    return;
+  }
+
+  // In production: call MSG91 API with phone
+  // For demo: generate a random OTP (we use 123456 as demo)
+  generatedOTP = '123456'; // In real: Math.floor(100000 + Math.random() * 900000).toString()
+
+  // Show OTP modal
+  document.getElementById('otpSubText').textContent = `We've sent a 6-digit OTP to ${phone}. Enter it below to verify your identity.`;
+  document.getElementById('otpOverlay').classList.add('show');
+
+  // Clear boxes
+  for (let i = 0; i < 6; i++) {
+    const box = document.getElementById('otp' + i);
+    box.value = '';
+    box.classList.remove('filled');
+  }
+  document.getElementById('otpVerifyBtn').disabled = true;
+  document.getElementById('otp0').focus();
+
+  // Start countdown timer
+  startOtpTimer();
+  showToast('📱 OTP sent to ' + phone + ' (Demo: use 123456)');
+}
+
+function startOtpTimer() {
+  clearInterval(otpTimerInterval);
+  let seconds = 30;
+  document.getElementById('timerCount').textContent = seconds;
+  document.getElementById('resendBtn').disabled = true;
+  document.getElementById('otpTimer').style.display = 'block';
+
+  otpTimerInterval = setInterval(() => {
+    seconds--;
+    document.getElementById('timerCount').textContent = seconds;
+    if (seconds <= 0) {
+      clearInterval(otpTimerInterval);
+      document.getElementById('resendBtn').disabled = false;
+      document.getElementById('otpTimer').style.display = 'none';
+    }
+  }, 1000);
+}
+
+function resendOTP() {
+  showToast('📱 OTP resent! (Demo: use 123456)');
+  startOtpTimer();
+  for (let i = 0; i < 6; i++) {
+    const box = document.getElementById('otp' + i);
+    box.value = '';
+    box.classList.remove('filled');
+  }
+  document.getElementById('otpVerifyBtn').disabled = true;
+  document.getElementById('otp0').focus();
+}
+
+function otpInput(el, idx) {
+  el.value = el.value.replace(/\D/g, '').slice(-1);
+  if (el.value) {
+    el.classList.add('filled');
+    if (idx < 5) document.getElementById('otp' + (idx + 1)).focus();
+  } else {
+    el.classList.remove('filled');
+  }
+
+  // Check if all filled
+  const full = Array.from({length:6}, (_, i) => document.getElementById('otp' + i).value).join('');
+  document.getElementById('otpVerifyBtn').disabled = full.length < 6;
+}
+
+function otpKeydown(e, idx) {
+  if (e.key === 'Backspace' && !document.getElementById('otp' + idx).value && idx > 0) {
+    document.getElementById('otp' + (idx - 1)).focus();
+  }
+}
+
+function verifyOTP() {
+  const entered = Array.from({length:6}, (_, i) => document.getElementById('otp' + i).value).join('');
+  if (entered === generatedOTP) {
+    otpVerified = true;
+    clearInterval(otpTimerInterval);
+    document.getElementById('otpOverlay').classList.remove('show');
+    document.getElementById('otpVerifiedStrip').style.display = 'block';
+    document.getElementById('phoneVerifiedBadge').style.display = 'block';
+    document.getElementById('sendOtpBtn').textContent = '✅ Verified';
+    document.getElementById('sendOtpBtn').style.background = '#059669';
+    document.getElementById('sendOtpBtn').disabled = true;
+    document.getElementById('otpRequiredNotice').style.display = 'none';
+
+    // Enable pay button
+    document.getElementById('payBtn').disabled = false;
+    document.getElementById('payBtn').innerHTML = `🔒 Pay Securely <span id="payBtnAmt">₹${calculatedPrice.toLocaleString()}</span>`;
+    showToast('✅ Phone number verified! You can now proceed to pay.');
+  } else {
+    // Shake boxes
+    document.getElementById('otpBoxes').style.animation = 'none';
+    document.getElementById('otpBoxes').style.transform = 'translateX(-8px)';
+    setTimeout(() => {
+      document.getElementById('otpBoxes').style.transform = 'translateX(8px)';
+      setTimeout(() => document.getElementById('otpBoxes').style.transform = '', 100);
+    }, 100);
+    showToast('❌ Incorrect OTP. Try again. (Demo: 123456)');
+  }
+}
+
+// ===== GEOCODING =====
+async function geocodeAddress(address) {
+  if (!address) return null;
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address + ', India')}&limit=1`;
+    const res = await fetch(url, { headers: { 'User-Agent': 'GoJourney/1.0' } });
+    const data = await res.json();
+    if (data && data[0]) {
+      return {
+        lat: parseFloat(data[0].lat),
+        lng: parseFloat(data[0].lon),
+        displayName: data[0].display_name,
+        name: data[0].name || address,
+      };
+    }
+  } catch(e) {}
+  return null;
+}
+
+async function reverseGeocode(lat, lng) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`;
+    const res = await fetch(url, { headers: { 'User-Agent': 'GoJourney/1.0' } });
+    const data = await res.json();
+    return data?.display_name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+  } catch(e) {
+    return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+  }
+}
+
+function haversineKm(a, b) {
+  const R = 6371;
+  const dLat = (b.lat - a.lat) * Math.PI / 180;
+  const dLon = (b.lng - a.lng) * Math.PI / 180;
+  const x = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(a.lat * Math.PI/180) * Math.cos(b.lat * Math.PI/180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  return Math.round(2 * R * Math.atan2(Math.sqrt(x), Math.sqrt(1-x)));
+}
+
+function estimateDuration(km, type) {
+  const speeds = { cab: 45, bus: 55, shuttle: 35 };
+  const speed = speeds[type] || 45;
+  const hours = km / speed;
+  const h = Math.floor(hours);
+  const m = Math.round((hours - h) * 60);
+  return (h > 0 ? h + 'h ' : '') + (m > 0 ? m + 'm' : '');
+}
+
+// ===== MAP =====
+async function initMap() {
+  const d = bookingData;
+  if (!d) return;
+
+  const needsMap = ['cab', 'bus', 'shuttle'].includes(d.type);
+  if (!needsMap) return;
+
+  document.getElementById('mapCard').style.display = 'block';
+  document.getElementById('payStepNum').textContent = '3';
+
+  const mapEl = document.getElementById('routeMap');
+  if (!map) {
+    map = L.map('routeMap').setView([22.5, 82.5], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+  }
+
+  const fromRaw = d.pickup || d.item?.from || (d.item?.route?.split('→')[0] || '').trim();
+  const toRaw   = d.drop   || d.item?.to   || (d.item?.route?.split('→')[1] || '').trim();
+
+  if (!fromRaw && !toRaw) {
+    document.getElementById('mapStatusBadge').textContent = 'Route data missing';
+    return;
+  }
+
+  document.getElementById('mapStatusBadge').textContent = 'Geocoding...';
+
+  // Geocode both endpoints
+  const [fromCoord, toCoord] = await Promise.all([
+    geocodeAddress(fromRaw),
+    geocodeAddress(toRaw),
+  ]);
+
+  if (fromCoord && toCoord) {
+    distanceKm = haversineKm(fromCoord, toCoord);
+    const duration = estimateDuration(distanceKm, d.type);
+
+    // Add markers
+    const fromIcon = L.divIcon({ className: '', html: '<div style="width:14px;height:14px;background:#0A4DA3;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3)"></div>' });
+    const toIcon   = L.divIcon({ className: '', html: '<div style="width:14px;height:14px;background:#f97316;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3)"></div>' });
+
+    L.marker([fromCoord.lat, fromCoord.lng], { icon: fromIcon })
+      .addTo(map).bindPopup(`<b>📍 From:</b> ${fromRaw}`).openPopup();
+    L.marker([toCoord.lat, toCoord.lng], { icon: toIcon })
+      .addTo(map).bindPopup(`<b>🏁 To:</b> ${toRaw}`);
+
+    // Draw route line
+    const routeLine = L.polyline([
+      [fromCoord.lat, fromCoord.lng],
+      [toCoord.lat, toCoord.lng]
+    ], { color: '#0A4DA3', weight: 4, opacity: 0.7, dashArray: '10, 6' }).addTo(map);
+    map.fitBounds(routeLine.getBounds(), { padding: [40, 40] });
+
+    document.getElementById('mapStatusBadge').textContent = distanceKm + ' km';
+
+    // Show geocoding widget
+    document.getElementById('geoWidget').style.display = 'block';
+    document.getElementById('geoResult').innerHTML = `
+      <div class="geo-chip">
+        <span>📍</span>
+        <div>
+          <div style="font-size:10px;color:#0369a1;font-weight:700;text-transform:uppercase">From • Geocoded</div>
+          <strong>${fromRaw}</strong>
+          <div style="font-size:11px;color:#64748b;margin-top:1px">${fromCoord.lat.toFixed(5)}°N, ${fromCoord.lng.toFixed(5)}°E</div>
+        </div>
+      </div>
+      <div class="geo-chip">
+        <span>🏁</span>
+        <div>
+          <div style="font-size:10px;color:#0369a1;font-weight:700;text-transform:uppercase">To • Geocoded</div>
+          <strong>${toRaw}</strong>
+          <div style="font-size:11px;color:#64748b;margin-top:1px">${toCoord.lat.toFixed(5)}°N, ${toCoord.lng.toFixed(5)}°E</div>
+        </div>
+      </div>`;
+
+    // Show route info box
+    document.getElementById('routeInfoBox').style.display = 'block';
+    document.getElementById('statDistance').textContent = distanceKm.toLocaleString() + ' km (straight-line)';
+    document.getElementById('statDuration').textContent = duration + ' approx';
+    document.getElementById('statRoute').textContent = fromRaw + ' → ' + toRaw;
+
+    // Update distance pill in summary
+    const distPill = document.getElementById('distancePill');
+    if (distPill) distPill.innerHTML = `${distanceKm} km <span class="realtime-badge">LIVE</span>`;
+
+    updatePriceBreakdown();
+  } else {
+    document.getElementById('mapStatusBadge').textContent = 'Geocoding failed';
+    showToast('⚠️ Could not geocode route — using estimated distance');
+    distanceKm = d.distanceKm || 80;
+    updatePriceBreakdown();
+  }
+}
 
 // ===== RENDER SUMMARY =====
 function renderSummary() {
@@ -365,15 +962,14 @@ function renderSummary() {
     html += summaryItem('📍', 'Location', item.location);
     html += summaryItem('📅', 'Check-in', d.checkin || '—');
     html += summaryItem('📅', 'Check-out', d.checkout || '—');
-    html += summaryItem('🛏️', 'Rooms', d.rooms || '1 Room');
-    html += summaryItem('👤', 'Room Type', d.roomType || 'Standard');
-    if (d.nights) html += summaryItem('🌙', 'Duration', d.nights + ' night' + (d.nights > 1 ? 's' : ''));
+    html += summaryItem('🛏️', 'Room Type', '—');
+    html += summaryItem('⭐', 'Rating', item.rating + ' (' + item.reviews + ' reviews)');
   } else if (type === 'cab') {
     html += summaryItem('🚗', 'Vehicle', item.name + ' (' + item.vehicle + ')');
     html += summaryItem('📍', 'Pickup', d.pickup || '—');
     html += summaryItem('🏁', 'Drop', d.drop || '—');
     html += summaryItem('📅', 'Date & Time', (d.date || '—') + ' ' + (d.time || ''));
-    html += summaryItem('📏', 'Distance', '<span id="distancePill">Calculating...</span>');
+    html += summaryItem('📏', 'Distance', '<span id="distancePill">Calculating... <span class="realtime-badge">LIVE</span></span>');
     html += summaryItem('💰', 'Rate', '₹' + item.pricePerKm + '/km (min ₹' + item.minFare + ')');
   } else if (type === 'bus') {
     html += summaryItem('🚌', 'Operator', item.name);
@@ -381,7 +977,7 @@ function renderSummary() {
     html += summaryItem('🕐', 'Departure', item.departure);
     html += summaryItem('🕐', 'Arrival', item.arrival);
     html += summaryItem('💺', 'Seats', (d.selectedSeats || []).join(', ') || '—');
-    html += summaryItem('📏', 'Distance', '<span id="distancePill">Calculating...</span>');
+    html += summaryItem('📏', 'Distance', '<span id="distancePill">Calculating... <span class="realtime-badge">LIVE</span></span>');
   } else if (type === 'tour') {
     if (item.img) html += `<img src="${item.img}" class="hotel-banner" style="width:100%;height:150px;object-fit:cover;border-radius:0">`;
     html += summaryItem('🗺️', 'Package', item.title);
@@ -395,9 +991,8 @@ function renderSummary() {
     html += summaryItem('🏁', 'To', d.drop || item.to || '—');
     html += summaryItem('🕐', 'Schedule', item.timing || '—');
     html += summaryItem('📅', 'Date', d.date || '—');
-    html += summaryItem('⏰', 'Time Slot', d.timeSlot || '—');
     html += summaryItem('👥', 'Passengers', d.passengers || '1');
-    html += summaryItem('📏', 'Distance', '<span id="distancePill">Calculating...</span>');
+    html += summaryItem('📏', 'Distance', '<span id="distancePill">Calculating... <span class="realtime-badge">LIVE</span></span>');
   }
   document.getElementById('summaryBody').innerHTML = html;
 }
@@ -410,245 +1005,132 @@ function typeName(t) {
   return { hotel: 'Hotel', cab: 'Cab', bus: 'Bus', tour: 'Tour', shuttle: 'Shuttle' }[t] || t;
 }
 
-// ===== EXTRA DETAILS (date pickers etc) =====
+// ===== EXTRA DETAILS =====
 function renderExtraDetails() {
   const d = bookingData;
   const slot = document.getElementById('extraDetailsSlot');
   if (d.type === 'hotel') {
+    slot.className = 'full';
     slot.innerHTML = `
-      <div class="form-group">
-        <label>Check-in Date</label>
-        <input type="date" id="fCheckin" value="${d.checkin || ''}" onchange="updateHotelPrice()">
-      </div>
-      <div class="form-group">
-        <label>Check-out Date</label>
-        <input type="date" id="fCheckout" value="${d.checkout || ''}" onchange="updateHotelPrice()">
-      </div>
-      <div class="form-group">
-        <label>Rooms</label>
-        <select id="fRooms" onchange="updateHotelPrice()">
-          <option value="1">1 Room</option><option value="2">2 Rooms</option><option value="3">3 Rooms</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Room Type</label>
-        <select id="fRoomType" onchange="updateHotelPrice()">
-          <option value="standard">Standard (₹${d.item.price}/night)</option>
-          <option value="deluxe">Deluxe (+20%)</option>
-          <option value="suite">Suite (+50%)</option>
-        </select>
-      </div>`;
-    document.getElementById('payStepNum').textContent = '2';
-    updateHotelPrice();
-  } else if (d.type === 'cab') {
-    slot.innerHTML = `
-      <div class="form-group">
-        <label>Pickup Address</label>
-        <input type="text" id="fPickup" placeholder="Full pickup address" value="${d.pickup || ''}" onchange="fetchDistanceAndUpdate()">
-      </div>
-      <div class="form-group">
-        <label>Drop Address</label>
-        <input type="text" id="fDrop" placeholder="Full drop address" value="${d.drop || ''}" onchange="fetchDistanceAndUpdate()">
-      </div>
-      <div class="form-group">
-        <label>Date</label>
-        <input type="date" id="fDate" value="${d.date || ''}">
-      </div>
-      <div class="form-group">
-        <label>Time</label>
-        <input type="time" id="fTime" value="${d.time || ''}">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%">
+        <div class="form-group">
+          <label>Check-in Date</label>
+          <input type="date" id="fCheckin" value="${d.checkin || ''}" onchange="onHotelDateChange()">
+        </div>
+        <div class="form-group">
+          <label>Check-out Date</label>
+          <input type="date" id="fCheckout" value="${d.checkout || ''}" onchange="onHotelDateChange()">
+        </div>
+        <div class="form-group">
+          <label>Number of Rooms</label>
+          <select id="fRooms" onchange="updatePriceBreakdown()">
+            <option value="1">1 Room</option><option value="2">2 Rooms</option><option value="3">3 Rooms</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Guests</label>
+          <select id="fGuests">
+            <option>1 Guest</option><option>2 Guests</option><option>3 Guests</option><option>4 Guests</option><option>5+ Guests</option>
+          </select>
+        </div>
       </div>`;
     document.getElementById('payStepNum').textContent = '3';
-    if (d.pickup && d.drop) setTimeout(fetchDistanceAndUpdate, 500);
+    updatePriceBreakdown();
+  } else if (d.type === 'cab') {
+    slot.className = 'full';
+    slot.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%">
+        <div class="form-group">
+          <label>Pickup Address</label>
+          <input type="text" id="fPickup" placeholder="Full pickup address" value="${d.pickup || ''}" onchange="onRouteChange()">
+        </div>
+        <div class="form-group">
+          <label>Drop Address</label>
+          <input type="text" id="fDrop" placeholder="Full drop address" value="${d.drop || ''}" onchange="onRouteChange()">
+        </div>
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" id="fDate" value="${d.date || ''}">
+        </div>
+        <div class="form-group">
+          <label>Time</label>
+          <input type="time" id="fTime" value="${d.time || ''}">
+        </div>
+      </div>`;
   } else if (d.type === 'bus') {
     const seats = d.selectedSeats || [];
+    slot.className = 'full';
     slot.innerHTML = `
-      <div class="form-group">
-        <label>Travel Date</label>
-        <input type="date" id="fDate" value="${d.date || ''}">
-      </div>
-      <div class="form-group">
-        <label>Seats Selected</label>
-        <input type="text" readonly value="${seats.join(', ') || 'None selected'}" style="background:#f1f5f9">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%">
+        <div class="form-group">
+          <label>Travel Date</label>
+          <input type="date" id="fDate" value="${d.date || ''}">
+        </div>
+        <div class="form-group">
+          <label>Seats Selected</label>
+          <input type="text" readonly value="${seats.join(', ') || 'None selected'}" style="background:#f1f5f9">
+        </div>
       </div>`;
-    document.getElementById('payStepNum').textContent = '3';
-    // Calculate bus distance from route
-    estimateBusDistance();
+  } else if (d.type === 'tour') {
+    slot.className = 'full';
+    slot.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%">
+        <div class="form-group">
+          <label>Travel Date</label>
+          <input type="date" id="fDate" value="${d.date || ''}">
+        </div>
+        <div class="form-group">
+          <label>No. of Travelers</label>
+          <select id="fTravelers" onchange="updatePriceBreakdown()">
+            <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4+</option>
+          </select>
+        </div>
+      </div>`;
   } else if (d.type === 'shuttle') {
-    const shuttleFrom = d.pickup || d.item?.from || '';
-    const shuttleTo   = d.drop   || d.item?.to   || '';
+    slot.className = 'full';
     slot.innerHTML = `
-      <div class="form-group">
-        <label>From</label>
-        <input type="text" id="fPickup" placeholder="Pickup point" value="${shuttleFrom}" onchange="fetchShuttleDistanceAndUpdate()">
-      </div>
-      <div class="form-group">
-        <label>To</label>
-        <input type="text" id="fDrop" placeholder="Drop point" value="${shuttleTo}" onchange="fetchShuttleDistanceAndUpdate()">
-      </div>
-      <div class="form-group">
-        <label>Date</label>
-        <input type="date" id="fDate" value="${d.date || ''}">
-      </div>
-      <div class="form-group">
-        <label>Passengers</label>
-        <select id="fPassengers" onchange="updatePriceBreakdown()">
-          <option value="1" ${d.passengers==1?'selected':''}>1</option>
-          <option value="2" ${d.passengers==2?'selected':''}>2</option>
-          <option value="3" ${d.passengers==3?'selected':''}>3</option>
-          <option value="4" ${d.passengers==4?'selected':''}>4+</option>
-        </select>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%">
+        <div class="form-group">
+          <label>From</label>
+          <input type="text" id="fPickup" placeholder="Pickup point" value="${d.pickup || d.item?.from || ''}">
+        </div>
+        <div class="form-group">
+          <label>To</label>
+          <input type="text" id="fDrop" placeholder="Drop point" value="${d.drop || d.item?.to || ''}">
+        </div>
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" id="fDate" value="${d.date || ''}">
+        </div>
+        <div class="form-group">
+          <label>Passengers</label>
+          <select id="fPassengers" onchange="updatePriceBreakdown()">
+            <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4+</option>
+          </select>
+        </div>
       </div>`;
-    document.getElementById('payStepNum').textContent = '3';
-    if (shuttleFrom && shuttleTo) setTimeout(fetchShuttleDistanceAndUpdate, 500);
-    else { distanceKm = d.distanceKm || 25; updatePriceBreakdown(); }
   }
 }
 
-// ===== MAP =====
-function initMap() {
-  const type = bookingData.type;
-  if (!['cab', 'bus', 'shuttle'].includes(type)) return;
-
-  document.getElementById('mapCard').style.display = 'block';
-  const mapTitles = { cab: '🗺️ Your Route', bus: '🗺️ Bus Route', shuttle: '🗺️ Shuttle Route' };
-  document.getElementById('mapTitle').textContent = mapTitles[type] || 'Route Map';
-
-  setTimeout(() => {
-    map = L.map('routeMap').setView([20.5937, 78.9629], 5);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
-  }, 300);
+function onHotelDateChange() {
+  updatePriceBreakdown();
+  renderRoomAvailability();
 }
 
-function plotRoute(fromCoords, toCoords, distance, duration) {
-  if (!map) return;
-  // Clear existing
-  if (routeLayer) map.removeLayer(routeLayer);
-  map.eachLayer(l => { if (l instanceof L.Marker || l instanceof L.Polyline) map.removeLayer(l); });
-
-  const fromIcon = L.divIcon({ html: '<div style="background:#0A4DA3;color:white;padding:4px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap">📍 Pickup</div>', className: '', iconAnchor: [30,12] });
-  const toIcon   = L.divIcon({ html: '<div style="background:#f97316;color:white;padding:4px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap">🏁 Drop</div>', className: '', iconAnchor: [20,12] });
-
-  L.marker([fromCoords.lat, fromCoords.lng], { icon: fromIcon }).addTo(map);
-  L.marker([toCoords.lat,   toCoords.lng],   { icon: toIcon   }).addTo(map);
-
-  // Draw line
-  routeLayer = L.polyline([[fromCoords.lat, fromCoords.lng],[toCoords.lat, toCoords.lng]], { color: '#0A4DA3', weight: 4, dashArray: '8,8', opacity: 0.8 }).addTo(map);
-  map.fitBounds(routeLayer.getBounds(), { padding: [40, 40] });
-
-  // Map info pills
-  document.getElementById('mapInfo').innerHTML = `
-    <div class="map-info-pill">📏 ${distance} km</div>
-    <div class="map-info-pill orange">⏱️ ~${duration}</div>
-    <div class="map-info-pill">🔵 Live Route</div>`;
-}
-
-// ===== DISTANCE CALCULATION via Open Route Service (FREE API) =====
-async function geocodeLocation(query) {
-  try {
-    const resp = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&countrycodes=in`, {
-      headers: { 'Accept-Language': 'en', 'User-Agent': 'GoJourney/1.0' }
-    });
-    const data = await resp.json();
-    if (data && data[0]) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), name: data[0].display_name };
-    return null;
-  } catch(e) { return null; }
-}
-
-async function fetchDistanceAndUpdate() {
-  const pickup = document.getElementById('fPickup')?.value || bookingData.pickup || '';
-  const drop   = document.getElementById('fDrop')?.value   || bookingData.drop   || '';
-  if (!pickup || !drop) return;
-
-  const distPill = document.getElementById('distancePill');
-  if (distPill) distPill.innerHTML = '<span style="color:#64748b;font-size:11px">🔄 Calculating...</span>';
-
-  try {
-    const [fromCoord, toCoord] = await Promise.all([geocodeLocation(pickup), geocodeLocation(drop)]);
-    if (!fromCoord || !toCoord) {
-      if (distPill) distPill.textContent = 'Could not calculate';
-      distanceKm = bookingData.item.type === 'cab' ? 50 : 100;
-      updatePriceBreakdown();
-      return;
+async function onRouteChange() {
+  const from = document.getElementById('fPickup')?.value?.trim();
+  const to   = document.getElementById('fDrop')?.value?.trim();
+  if (from && to) {
+    bookingData.pickup = from;
+    bookingData.drop = to;
+    // Re-init map
+    if (map) {
+      map.eachLayer(l => { if (l instanceof L.Marker || l instanceof L.Polyline) map.removeLayer(l); });
     }
-
-    // Haversine distance
-    const R = 6371;
-    const dLat = (toCoord.lat - fromCoord.lat) * Math.PI / 180;
-    const dLng = (toCoord.lng - fromCoord.lng) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(fromCoord.lat * Math.PI/180) * Math.cos(toCoord.lat * Math.PI/180) *
-              Math.sin(dLng/2) * Math.sin(dLng/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    const straightDist = R * c;
-    // Road distance is typically 1.3x straight line
-    distanceKm = Math.round(straightDist * 1.3);
-
-    const durationHr = distanceKm / 60; // avg 60 km/h
-    const hours = Math.floor(durationHr);
-    const mins = Math.round((durationHr - hours) * 60);
-    const durationStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-
-    if (distPill) distPill.innerHTML = `<strong style="color:#0A4DA3">${distanceKm} km</strong> <span style="font-size:11px;color:#64748b">(~${durationStr})</span>`;
-    plotRoute(fromCoord, toCoord, distanceKm, durationStr);
-    updatePriceBreakdown();
-  } catch(e) {
-    distanceKm = 80;
-    updatePriceBreakdown();
+    document.getElementById('geoWidget').style.display = 'none';
+    document.getElementById('routeInfoBox').style.display = 'none';
+    await initMap();
   }
-}
-
-async function estimateBusDistance() {
-  const route = bookingData.item?.route || '';
-  const parts = route.split(/[→↔→\-]/);
-  if (parts.length < 2) { distanceKm = 400; updatePriceBreakdown(); return; }
-  const from = parts[0].trim(), to = parts[parts.length-1].trim();
-  const distPill = document.getElementById('distancePill');
-  if (distPill) distPill.innerHTML = '<span style="color:#64748b;font-size:11px">🔄 Calculating...</span>';
-  try {
-    const [fromCoord, toCoord] = await Promise.all([geocodeLocation(from + ', India'), geocodeLocation(to + ', India')]);
-    if (fromCoord && toCoord) {
-      const R = 6371;
-      const dLat = (toCoord.lat - fromCoord.lat) * Math.PI / 180;
-      const dLng = (toCoord.lng - fromCoord.lng) * Math.PI / 180;
-      const a = Math.sin(dLat/2)**2 + Math.cos(fromCoord.lat*Math.PI/180)*Math.cos(toCoord.lat*Math.PI/180)*Math.sin(dLng/2)**2;
-      distanceKm = Math.round(6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)) * 1.3);
-      const hrs = Math.round(distanceKm/60);
-      if (distPill) distPill.innerHTML = `<strong style="color:#0A4DA3">${distanceKm} km</strong> <span style="font-size:11px;color:#64748b">(~${hrs}h)</span>`;
-      plotRoute(fromCoord, toCoord, distanceKm, hrs + 'h');
-    }
-  } catch(e) { distanceKm = 400; }
-  updatePriceBreakdown();
-}
-
-async function fetchShuttleDistanceAndUpdate() {
-  const pickup = document.getElementById('fPickup')?.value || bookingData.pickup || bookingData.item?.from || '';
-  const drop   = document.getElementById('fDrop')?.value   || bookingData.drop   || bookingData.item?.to   || '';
-  if (!pickup || !drop) { distanceKm = 25; updatePriceBreakdown(); return; }
-  const distPill = document.getElementById('distancePill');
-  if (distPill) distPill.innerHTML = '<span style="color:#64748b;font-size:11px">🔄 Calculating...</span>';
-  try {
-    const [fromCoord, toCoord] = await Promise.all([geocodeLocation(pickup + ', India'), geocodeLocation(drop + ', India')]);
-    if (fromCoord && toCoord) {
-      const R = 6371;
-      const dLat = (toCoord.lat - fromCoord.lat) * Math.PI / 180;
-      const dLng = (toCoord.lng - fromCoord.lng) * Math.PI / 180;
-      const a = Math.sin(dLat/2)**2 + Math.cos(fromCoord.lat*Math.PI/180)*Math.cos(toCoord.lat*Math.PI/180)*Math.sin(dLng/2)**2;
-      distanceKm = Math.max(3, Math.round(6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)) * 1.3));
-      const estMins = Math.round(distanceKm / 0.5); // ~30km/h in city
-      if (distPill) distPill.innerHTML = `<strong style="color:#0A4DA3">${distanceKm} km</strong> <span style="font-size:11px;color:#64748b">(~${estMins < 60 ? estMins+'m' : Math.floor(estMins/60)+'h '+estMins%60+'m'})</span>`;
-      plotRoute(fromCoord, toCoord, distanceKm, estMins < 60 ? estMins+'m' : Math.floor(estMins/60)+'h');
-    } else { distanceKm = bookingData.distanceKm || 25; }
-  } catch(e) { distanceKm = bookingData.distanceKm || 25; }
-  updatePriceBreakdown();
-}
-
-async function estimateShuttleDistance() {
-  // Legacy - delegates to new function
-  distanceKm = bookingData.distanceKm || 25;
-  updatePriceBreakdown();
 }
 
 // ===== PRICE CALCULATIONS =====
@@ -661,29 +1143,24 @@ function calcBasePrice() {
     const ci = document.getElementById('fCheckin')?.value || d.checkin;
     const co = document.getElementById('fCheckout')?.value || d.checkout;
     const rooms = parseInt(document.getElementById('fRooms')?.value || d.rooms || 1);
-    const roomType = document.getElementById('fRoomType')?.value || 'standard';
-    let nightlyRate = item.price || 2999;
-    if (roomType === 'deluxe') nightlyRate *= 1.2;
-    if (roomType === 'suite') nightlyRate *= 1.5;
-    let nights = 1;
-    if (ci && co) {
-      const diff = (new Date(co) - new Date(ci)) / 86400000;
-      if (diff > 0) nights = diff;
-    }
+    const nights = calcNights(ci, co);
     bookingData._nights = nights;
     bookingData._rooms = rooms;
-    return Math.round(nightlyRate * nights * rooms);
+
+    // Use selected room price if available
+    if (selectedRoom) {
+      return Math.round(selectedRoom.price * nights * rooms);
+    }
+    return Math.round((item.price || 2999) * nights * rooms);
   }
   if (type === 'cab') {
-    const km = distanceKm || 50;
+    const km = distanceKm || d.distanceKm || 50;
     return Math.max(item.minFare || 299, Math.round(km * (item.pricePerKm || item.price || 12)));
   }
   if (type === 'bus') {
     const seatCount = (d.selectedSeats || []).length || 1;
-    const km = distanceKm || 400;
-    // ₹8/km per seat
-    const kmPrice = Math.round(km * 8 * seatCount);
-    return Math.max(item.price * seatCount, kmPrice);
+    const km = distanceKm || d.distanceKm || 400;
+    return Math.max(item.price * seatCount, Math.round(km * 8 * seatCount));
   }
   if (type === 'tour') {
     const travelers = parseInt(document.getElementById('fTravelers')?.value || d.travelers || 1);
@@ -691,16 +1168,10 @@ function calcBasePrice() {
   }
   if (type === 'shuttle') {
     const passengers = parseInt(document.getElementById('fPassengers')?.value || d.passengers || 1);
-    const km = distanceKm || 25;
-    // ₹10/km per seat
-    const kmPrice = Math.round(km * 10 * passengers);
-    return Math.max(item.price * passengers, kmPrice);
+    const km = distanceKm || d.distanceKm || 25;
+    return Math.max(item.price * passengers, Math.round(km * 10 * passengers));
   }
   return item.price || 0;
-}
-
-function updateHotelPrice() {
-  updatePriceBreakdown();
 }
 
 function updatePriceBreakdown() {
@@ -722,17 +1193,20 @@ function updatePriceBreakdown() {
   calculatedPrice = total;
 
   const type = bookingData.type;
-  let extraLine = '';
+  let extraLines = '';
+
   if (type === 'hotel' && bookingData._nights) {
-    extraLine = `<div class="price-row"><span>Nights × Rooms</span><span>${bookingData._nights} × ${bookingData._rooms || 1}</span></div>`;
+    const roomLabel = selectedRoom ? selectedRoom.name : 'Standard Room';
+    extraLines += `<div class="price-row"><span>Room Type</span><span>${roomLabel}</span></div>`;
+    extraLines += `<div class="price-row"><span>Nights × Rooms</span><span>${bookingData._nights} × ${bookingData._rooms || 1}</span></div>`;
   }
   if (['cab','bus','shuttle'].includes(type) && distanceKm) {
     const rates = { cab: bookingData.item.pricePerKm || bookingData.item.price, bus: 8, shuttle: 10 };
-    extraLine = `<div class="price-row"><span>Distance</span><span>${distanceKm} km @ ₹${rates[type]}/km <span class="realtime-badge">LIVE</span></span></div>`;
+    extraLines += `<div class="price-row"><span>Distance</span><span>${distanceKm} km @ ₹${rates[type]}/km <span class="realtime-badge">LIVE</span></span></div>`;
   }
 
   document.getElementById('priceBreakdown').innerHTML = `
-    ${extraLine}
+    ${extraLines}
     <div class="price-row"><span>Base Fare</span><span>₹${base.toLocaleString()}</span></div>
     ${discount ? `<div class="price-row discount"><span>🎟️ Coupon (${appliedCoupon})</span><span>−₹${discount.toLocaleString()}</span></div>` : ''}
     <div class="price-row tax"><span>GST (18%)</span><span>₹${gst.toLocaleString()}</span></div>
@@ -740,8 +1214,11 @@ function updatePriceBreakdown() {
     <div class="price-row total"><span>Total Payable</span><span>₹${total.toLocaleString()}</span></div>
   `;
 
-  document.getElementById('payBtnAmt').textContent = '₹' + total.toLocaleString();
-  document.getElementById('payBtn').querySelector('span').textContent = '₹' + total.toLocaleString();
+  const payBtnAmt = document.getElementById('payBtnAmt');
+  if (payBtnAmt) payBtnAmt.textContent = '₹' + total.toLocaleString();
+  if (otpVerified) {
+    document.getElementById('payBtn').innerHTML = `🔒 Pay Securely <span id="payBtnAmt">₹${total.toLocaleString()}</span>`;
+  }
 }
 
 // ===== COUPON =====
@@ -757,7 +1234,7 @@ function applyCoupon() {
   bookingData.appliedCoupon = code;
   const el = document.getElementById('couponApplied');
   el.style.display = 'block';
-  el.textContent = '✅ Coupon "' + code + '" applied! ' + coupon.desc;
+  el.textContent = '✅ "' + code + '" applied! ' + coupon.desc;
   updatePriceBreakdown();
   showToast('✅ ' + coupon.desc);
 }
@@ -811,34 +1288,43 @@ function formatExpiry(el) {
 
 // ===== PROCESS PAYMENT =====
 function processPayment() {
+  if (!otpVerified) {
+    showToast('📱 Please verify your mobile number via OTP first');
+    document.getElementById('travelerPhone').focus();
+    return;
+  }
+
   const name  = document.getElementById('travelerName').value.trim();
   const phone = document.getElementById('travelerPhone').value.trim();
   const email = document.getElementById('travelerEmail').value.trim();
 
   if (!name || !phone || !email) {
     showToast('⚠️ Please fill in all traveler details');
-    document.getElementById('travelerName').focus();
     return;
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     showToast('⚠️ Please enter a valid email');
     return;
   }
+  if (bookingData.type === 'hotel' && !selectedRoom) {
+    showToast('⚠️ Please select a room type first');
+    document.getElementById('roomAvailCard').scrollIntoView({ behavior: 'smooth' });
+    return;
+  }
 
-  // Show loading
   document.getElementById('loadingOverlay').classList.add('show');
+  document.getElementById('loadingMsg').textContent = 'Securing payment with OTP verification...';
   document.getElementById('payBtn').disabled = true;
 
-  // Simulate payment processing (2.5 sec)
   setTimeout(() => {
-    confirmBooking(name, phone, email);
-  }, 2500);
+    document.getElementById('loadingMsg').textContent = 'Processing payment...';
+    setTimeout(() => confirmBooking(name, phone, email), 1000);
+  }, 1200);
 }
 
 function confirmBooking(name, phone, email) {
   const d = bookingData;
   const bookingId = 'GJ' + Date.now().toString().slice(-8);
-  const timestamp = new Date().toISOString();
 
   const booking = {
     id: bookingId,
@@ -853,21 +1339,19 @@ function confirmBooking(name, phone, email) {
     travelDetails: {
       pickup: d.pickup, drop: d.drop, checkin: d.checkin, checkout: d.checkout,
       date: d.date, seats: d.selectedSeats, passengers: d.passengers,
-      distanceKm: distanceKm, route: d.item?.route,
+      distanceKm, route: d.item?.route, roomType: selectedRoom?.name,
     },
     couponApplied: appliedCoupon,
-    timestamp,
+    otpVerified: true,
+    timestamp: new Date().toISOString(),
   };
 
-  // Save to localStorage
   const bookings = lsGet('gj_bookings', []);
   bookings.push(booking);
   lsSet('gj_bookings', bookings);
-
-  // Clear pending booking
   localStorage.removeItem('gj_pendingBooking');
 
-  // Also try to save to backend
+  // Backend save
   const token = localStorage.getItem('gj_token') || localStorage.getItem('token') || '';
   if (token) {
     fetch('https://gojourney-production.up.railway.app/api/bookings', {
@@ -877,7 +1361,6 @@ function confirmBooking(name, phone, email) {
     }).catch(() => {});
   }
 
-  // Show success
   document.getElementById('loadingOverlay').classList.remove('show');
   showSuccess(booking);
 }
@@ -892,21 +1375,20 @@ function showSuccess(booking) {
   const item = booking.item;
   let detailHtml = `
     <div style="display:grid;gap:8px">
-      <div style="display:flex;justify-content:space-between;font-size:14px"><span style="color:#64748b">Type</span><strong>${typeName(type)}</strong></div>
+      <div style="display:flex;justify-content:space-between;font-size:14px"><span style="color:#64748b">Service</span><strong>${typeName(type)} — ${item.name || item.title || item.route || ''}</strong></div>
+      ${booking.travelDetails?.roomType ? `<div style="display:flex;justify-content:space-between;font-size:14px"><span style="color:#64748b">Room</span><strong>${booking.travelDetails.roomType}</strong></div>` : ''}
+      ${distanceKm ? `<div style="display:flex;justify-content:space-between;font-size:14px"><span style="color:#64748b">Distance</span><strong>${distanceKm} km</strong></div>` : ''}
       <div style="display:flex;justify-content:space-between;font-size:14px"><span style="color:#64748b">Amount Paid</span><strong style="color:#059669">₹${booking.amount.toLocaleString()}</strong></div>
       <div style="display:flex;justify-content:space-between;font-size:14px"><span style="color:#64748b">Payment</span><strong>${payMethod.toUpperCase()}</strong></div>
+      <div style="display:flex;justify-content:space-between;font-size:14px"><span style="color:#64748b">OTP Verified</span><strong style="color:#059669">✅ Yes</strong></div>
       <div style="display:flex;justify-content:space-between;font-size:14px"><span style="color:#64748b">Status</span><strong style="color:#059669">✅ Confirmed</strong></div>
       <div style="display:flex;justify-content:space-between;font-size:14px"><span style="color:#64748b">Booked on</span><strong>${new Date().toLocaleString('en-IN')}</strong></div>
     </div>`;
   document.getElementById('successDetails').innerHTML = detailHtml;
-
-  // Scroll to top
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function printReceipt() {
-  window.print();
-}
+function printReceipt() { window.print(); }
 
 // ===== TOAST =====
 function showToast(msg) {
