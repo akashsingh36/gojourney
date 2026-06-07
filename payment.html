@@ -298,9 +298,7 @@ button { cursor: pointer; border: none; outline: none; font-family: inherit; }
     </div>
     <div class="otp-timer" id="otpTimer">Resend available in <span id="timerCount">30</span>s</div>
 
-    <div class="otp-demo-hint">
-      🧪 <strong>Demo Mode:</strong> Use OTP <strong>123456</strong> to confirm booking. In production, real SMS is sent via MSG91.
-    </div>
+
   </div>
 </div>
 
@@ -510,7 +508,7 @@ let distanceKm = 0;
 let map = null;
 let routeLayer = null;
 let otpVerified = false;
-let generatedOTP = '123456'; // demo OTP (in production: server-generated)
+let generatedOTP = null; // set by backend (dev mode only)
 let otpTimerInterval = null;
 let selectedRoom = null;
 
@@ -692,20 +690,51 @@ function calcNights(ci, co) {
 }
 
 // ===== OTP FLOW =====
-function sendOTP() {
+async function sendOTP() {
   const phone = document.getElementById('travelerPhone').value.trim();
-  if (!phone || phone.length < 10) {
-    showToast('⚠️ Please enter a valid mobile number first');
+  if (!phone || phone.replace(/\D/g,'').length < 10) {
+    showToast('⚠️ Please enter a valid 10-digit mobile number first');
     document.getElementById('travelerPhone').focus();
     return;
   }
 
-  // In production: call MSG91 API with phone
-  // For demo: generate a random OTP (we use 123456 as demo)
-  generatedOTP = '123456'; // In real: Math.floor(100000 + Math.random() * 900000).toString()
+  const btn = document.getElementById('sendOtpBtn');
+  btn.textContent = '⏳ Sending...';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('https://gojourney-production.up.railway.app/api/otp/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone })
+    });
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      showToast('❌ Failed to send OTP: ' + (data.error || 'Unknown error'));
+      btn.textContent = 'Get OTP';
+      btn.disabled = false;
+      return;
+    }
+
+    // Dev mode: backend returned OTP in response (no SMS key configured)
+    if (data.dev && data.otp) {
+      generatedOTP = data.otp; // only used in dev fallback
+      showToast('📱 [DEV] OTP: ' + data.otp + ' (SMS not configured)');
+    } else {
+      generatedOTP = null; // will verify via backend
+      showToast('📱 OTP sent to ' + phone);
+    }
+
+  } catch (err) {
+    showToast('❌ Could not reach server. Check connection.');
+    btn.textContent = 'Get OTP';
+    btn.disabled = false;
+    return;
+  }
 
   // Show OTP modal
-  document.getElementById('otpSubText').textContent = `We've sent a 6-digit OTP to ${phone}. Enter it below to verify your identity.`;
+  document.getElementById('otpSubText').textContent = `We've sent a 6-digit OTP to ${phone}. Valid for 5 minutes.`;
   document.getElementById('otpOverlay').classList.add('show');
 
   // Clear boxes
@@ -719,7 +748,6 @@ function sendOTP() {
 
   // Start countdown timer
   startOtpTimer();
-  showToast('📱 OTP sent to ' + phone + ' (Demo: use 123456)');
 }
 
 function startOtpTimer() {
@@ -741,14 +769,27 @@ function startOtpTimer() {
 }
 
 function resendOTP() {
-  showToast('📱 OTP resent! (Demo: use 123456)');
-  startOtpTimer();
+  // Reset boxes and call sendOTP flow again
   for (let i = 0; i < 6; i++) {
     const box = document.getElementById('otp' + i);
     box.value = '';
     box.classList.remove('filled');
   }
   document.getElementById('otpVerifyBtn').disabled = true;
+  // Re-send via backend
+  const phone = document.getElementById('travelerPhone').value.trim();
+  fetch('https://gojourney-production.up.railway.app/api/otp/send', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.dev && data.otp) { generatedOTP = data.otp; showToast('📱 [DEV] OTP: ' + data.otp); }
+    else { generatedOTP = null; showToast('📱 OTP resent to ' + phone); }
+  })
+  .catch(() => showToast('❌ Could not resend OTP'));
+  startOtpTimer();
   document.getElementById('otp0').focus();
 }
 
@@ -772,9 +813,50 @@ function otpKeydown(e, idx) {
   }
 }
 
-function verifyOTP() {
+async function verifyOTP() {
   const entered = Array.from({length:6}, (_, i) => document.getElementById('otp' + i).value).join('');
-  if (entered === generatedOTP) {
+  const phone = document.getElementById('travelerPhone').value.trim();
+
+  const btn = document.getElementById('otpVerifyBtn');
+  btn.textContent = '⏳ Verifying...';
+  btn.disabled = true;
+
+  let verified = false;
+
+  // Dev mode: generatedOTP set locally
+  if (generatedOTP) {
+    verified = (entered === generatedOTP);
+  } else {
+    // Production: verify via backend
+    try {
+      const res = await fetch('https://gojourney-production.up.railway.app/api/otp/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, otp: entered })
+      });
+      const data = await res.json();
+      verified = res.ok && data.success;
+      if (!verified) {
+        showToast('❌ ' + (data.error || 'Incorrect OTP. Please try again.'));
+        btn.textContent = 'Verify OTP';
+        btn.disabled = false;
+        // Shake animation
+        document.getElementById('otpBoxes').style.transform = 'translateX(-8px)';
+        setTimeout(() => {
+          document.getElementById('otpBoxes').style.transform = 'translateX(8px)';
+          setTimeout(() => document.getElementById('otpBoxes').style.transform = '', 100);
+        }, 100);
+        return;
+      }
+    } catch (err) {
+      showToast('❌ Could not verify OTP. Check connection.');
+      btn.textContent = 'Verify OTP';
+      btn.disabled = false;
+      return;
+    }
+  }
+
+  if (verified) {
     otpVerified = true;
     clearInterval(otpTimerInterval);
     document.getElementById('otpOverlay').classList.remove('show');
@@ -784,20 +866,18 @@ function verifyOTP() {
     document.getElementById('sendOtpBtn').style.background = '#059669';
     document.getElementById('sendOtpBtn').disabled = true;
     document.getElementById('otpRequiredNotice').style.display = 'none';
-
-    // Enable pay button
     document.getElementById('payBtn').disabled = false;
     document.getElementById('payBtn').innerHTML = `🔒 Pay Securely <span id="payBtnAmt">₹${calculatedPrice.toLocaleString()}</span>`;
     showToast('✅ Phone number verified! You can now proceed to pay.');
   } else {
-    // Shake boxes
-    document.getElementById('otpBoxes').style.animation = 'none';
+    btn.textContent = 'Verify OTP';
+    btn.disabled = false;
     document.getElementById('otpBoxes').style.transform = 'translateX(-8px)';
     setTimeout(() => {
       document.getElementById('otpBoxes').style.transform = 'translateX(8px)';
       setTimeout(() => document.getElementById('otpBoxes').style.transform = '', 100);
     }, 100);
-    showToast('❌ Incorrect OTP. Try again. (Demo: 123456)');
+    showToast('❌ Incorrect OTP. Please try again.');
   }
 }
 

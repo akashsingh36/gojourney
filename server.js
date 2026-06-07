@@ -31,7 +31,22 @@ app.use(express.static(path.join(__dirname)));
 
 // ===== MONGODB CONNECTION =====
 mongoose.connect(MONGO_URI)
-  .then(() => console.log('✅ MongoDB connected'))
+  .then(async () => {
+    console.log('✅ MongoDB connected');
+    // Ensure the admin account exists with role: 'admin'
+    const adminEmail = 'akashengsingh@gmail.com';
+    const adminPassword = '13141450#Akash';
+    let admin = await User.findOne({ email: adminEmail });
+    if (!admin) {
+      const hashed = await require('bcryptjs').hash(adminPassword, 12);
+      admin = await User.create({ name: 'Admin', email: adminEmail, password: hashed, role: 'admin' });
+      console.log('✅ Admin account created');
+    } else if (admin.role !== 'admin') {
+      admin.role = 'admin';
+      await admin.save();
+      console.log('✅ Admin role updated');
+    }
+  })
   .catch(err => console.log('⚠️  MongoDB not connected (using mock data):', err.message));
 
 // ===== SCHEMAS =====
@@ -369,6 +384,72 @@ app.post('/api/coupons/validate', authMiddleware, (req, res) => {
   
   const discount = coupon.type === 'percent' ? Math.round(amount * coupon.value / 100) : coupon.value;
   res.json({ valid: true, discount, coupon });
+});
+
+
+// ===== OTP ROUTES (Fast2SMS) =====
+// Store OTPs temporarily in memory (use Redis in production)
+const otpStore = new Map(); // phone -> { otp, expiresAt }
+
+app.post('/api/otp/send', async (req, res) => {
+  const { phone } = req.body;
+  if (!phone || phone.replace(/\D/g, '').length < 10) {
+    return res.status(400).json({ error: 'Valid phone number required' });
+  }
+  const cleanPhone = phone.replace(/\D/g, '').slice(-10); // last 10 digits
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+
+  otpStore.set(cleanPhone, { otp, expiresAt });
+
+  const FAST2SMS_KEY = process.env.FAST2SMS_KEY;
+  if (!FAST2SMS_KEY) {
+    // No API key configured — return OTP in response (dev only)
+    console.log(`[DEV] OTP for ${cleanPhone}: ${otp}`);
+    return res.json({ success: true, dev: true, otp, message: 'Dev mode: OTP in response' });
+  }
+
+  try {
+    const smsRes = await fetch('https://www.fast2sms.com/dev/bulkV2', {
+      method: 'POST',
+      headers: {
+        'authorization': FAST2SMS_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        route: 'otp',
+        variables_values: otp,
+        numbers: cleanPhone
+      })
+    });
+    const smsData = await smsRes.json();
+    if (smsData.return === true) {
+      res.json({ success: true, message: 'OTP sent to ' + cleanPhone });
+    } else {
+      console.error('Fast2SMS error:', smsData);
+      res.status(500).json({ error: 'SMS sending failed', detail: smsData.message });
+    }
+  } catch (err) {
+    console.error('OTP send error:', err.message);
+    res.status(500).json({ error: 'SMS service unavailable' });
+  }
+});
+
+app.post('/api/otp/verify', (req, res) => {
+  const { phone, otp } = req.body;
+  if (!phone || !otp) return res.status(400).json({ error: 'Phone and OTP required' });
+  const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+  const record = otpStore.get(cleanPhone);
+
+  if (!record) return res.status(400).json({ error: 'OTP not found. Please request a new one.' });
+  if (Date.now() > record.expiresAt) {
+    otpStore.delete(cleanPhone);
+    return res.status(400).json({ error: 'OTP expired. Please request a new one.' });
+  }
+  if (record.otp !== otp) return res.status(400).json({ error: 'Incorrect OTP' });
+
+  otpStore.delete(cleanPhone); // one-time use
+  res.json({ success: true, message: 'Phone verified' });
 });
 
 // Serve frontend
