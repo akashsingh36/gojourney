@@ -9,7 +9,32 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const path = require('path');
 
-const fetch = require("node-fetch");
+const https = require("https");
+
+// Simple fetch wrapper using built-in https (avoids node-fetch ESM issues)
+function httpPost(url, headers, body) {
+  return new Promise((resolve, reject) => {
+    const urlObj = new URL(url);
+    const data = typeof body === 'string' ? body : JSON.stringify(body);
+    const options = {
+      hostname: urlObj.hostname,
+      path: urlObj.pathname + urlObj.search,
+      method: 'POST',
+      headers: { ...headers, 'Content-Length': Buffer.byteLength(data) }
+    };
+    const req = https.request(options, (res) => {
+      let raw = '';
+      res.on('data', chunk => raw += chunk);
+      res.on('end', () => {
+        try { resolve({ ok: res.statusCode < 400, status: res.statusCode, json: () => JSON.parse(raw) }); }
+        catch(e) { resolve({ ok: false, status: res.statusCode, json: () => ({}) }); }
+      });
+    });
+    req.on('error', reject);
+    req.write(data);
+    req.end();
+  });
+}
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -136,11 +161,8 @@ app.get("/api/search-buses", async (req, res) => {
 
   try {
     // 🔴 CHANGE THIS LINE ONLY
-    const distanceRes = await fetch(`AIzaSyBUi7G0cPiT7-hDQHveKRZ4D4SjTsVQAsQ?from=${from}&to=${to}`);
-    const distanceData = await distanceRes.json();
+    const distance = 300; const duration = "5 hours"; // placeholder
 
-    const distance = distanceData.distance || 300;
-    const duration = distanceData.duration || "5 hours";
 
     const buses = [
       { from: "delhi", to: "kanpur", name: "Volvo AC", type: "AC", pricePerKm: 2 },
@@ -410,28 +432,21 @@ app.post('/api/otp/send', async (req, res) => {
   // ── Try Fast2SMS (OTP route) ──
   if (FAST2SMS_KEY) {
     try {
-      const smsRes = await fetch('https://www.fast2sms.com/dev/bulkV2', {
-        method: 'POST',
-        headers: { 'authorization': FAST2SMS_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ route: 'otp', variables_values: otp, numbers: cleanPhone, flash: 0 })
-      });
-      const smsData = await smsRes.json();
+      const smsRes = await httpPost('https://www.fast2sms.com/dev/bulkV2',
+        { 'authorization': FAST2SMS_KEY, 'Content-Type': 'application/json' },
+        JSON.stringify({ route: 'otp', variables_values: otp, numbers: cleanPhone, flash: 0 })
+      );
+      const smsData = smsRes.json();
       console.log('Fast2SMS OTP route:', JSON.stringify(smsData));
       if (smsData.return === true) {
         return res.json({ success: true, message: 'OTP sent via SMS' });
       }
       // Try Quick SMS route as fallback
-      const smsRes2 = await fetch('https://www.fast2sms.com/dev/bulkV2', {
-        method: 'POST',
-        headers: { 'authorization': FAST2SMS_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          route: 'q',
-          message: 'Your GoJourney OTP is ' + otp + '. Valid 5 mins. Do not share.',
-          language: 'english',
-          numbers: cleanPhone
-        })
-      });
-      const smsData2 = await smsRes2.json();
+      const smsRes2 = await httpPost('https://www.fast2sms.com/dev/bulkV2',
+        { 'authorization': FAST2SMS_KEY, 'Content-Type': 'application/json' },
+        JSON.stringify({ route: 'q', message: 'Your GoJourney OTP is ' + otp + '. Valid 5 mins. Do not share.', language: 'english', numbers: cleanPhone })
+      );
+      const smsData2 = smsRes2.json();
       console.log('Fast2SMS Q route:', JSON.stringify(smsData2));
       if (smsData2.return === true) {
         return res.json({ success: true, message: 'OTP sent via SMS' });
@@ -447,19 +462,13 @@ app.post('/api/otp/send', async (req, res) => {
     try {
       const toNumber = '+91' + cleanPhone;
       const auth = Buffer.from(TWILIO_SID + ':' + TWILIO_TOKEN).toString('base64');
-      const twilioRes = await fetch(
+      const twilioBody = 'From=' + encodeURIComponent(TWILIO_FROM) + '&To=' + encodeURIComponent(toNumber) + '&Body=' + encodeURIComponent('Your GoJourney OTP is: ' + otp + '. Valid for 5 minutes. Do not share.');
+      const twilioRes = await httpPost(
         `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/Messages.json`,
-        {
-          method: 'POST',
-          headers: { 'Authorization': 'Basic ' + auth, 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({
-            From: TWILIO_FROM,
-            To: toNumber,
-            Body: 'Your GoJourney OTP is: ' + otp + '. Valid for 5 minutes. Do not share.'
-          })
-        }
+        { 'Authorization': 'Basic ' + auth, 'Content-Type': 'application/x-www-form-urlencoded' },
+        twilioBody
       );
-      const twilioData = await twilioRes.json();
+      const twilioData = twilioRes.json();
       console.log('Twilio response:', JSON.stringify(twilioData));
       if (twilioData.sid) {
         return res.json({ success: true, message: 'OTP sent via SMS' });
