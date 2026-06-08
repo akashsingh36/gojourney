@@ -1487,6 +1487,28 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
   box-shadow: 0 0 0 3px rgba(10,77,163,0.1);
   outline: none;
 }
+
+/* ===== LOCATION AUTOCOMPLETE ===== */
+.ac-wrapper { position: relative; width: 100%; }
+.ac-dropdown {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  background: white; border: 1.5px solid var(--primary);
+  border-radius: 12px; box-shadow: 0 8px 32px rgba(10,77,163,0.15);
+  z-index: 9999; max-height: 280px; overflow-y: auto;
+  animation: acFadeIn 0.15s ease;
+}
+@keyframes acFadeIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+.ac-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 16px; cursor: pointer; transition: background 0.15s;
+  border-bottom: 1px solid var(--border); font-size: 14px;
+}
+.ac-item:last-child { border-bottom: none; }
+.ac-item:hover, .ac-item.active { background: var(--light); }
+.ac-icon { font-size: 18px; flex-shrink: 0; }
+.ac-main { font-weight: 600; color: var(--text); }
+.ac-sub { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+.ac-loading { padding: 14px 16px; color: var(--text-muted); font-size: 13px; text-align:center; }
 </style>
 </head>
 <body>
@@ -4059,6 +4081,9 @@ function init() {
   if (hotelDest) {
     hotelDest.addEventListener('keydown', e => { if (e.key === 'Enter') performSearch('hotels'); });
   }
+
+  // Attach location autocomplete to all search inputs
+  ['hotelDest', 'cabFrom', 'cabTo', 'busFrom', 'busTo', 'shuttleFrom', 'shuttleTo'].forEach(attachAutocomplete);
 }
 
 async function updateCabPricePreview() {
@@ -4080,6 +4105,128 @@ async function updateCabPricePreview() {
   } catch(e) {
     text.textContent = '⚠️ Could not calculate distance.';
   }
+}
+
+
+// ===== LOCATION AUTOCOMPLETE ENGINE =====
+const acCache = {};
+let acActiveIndex = -1;
+
+async function fetchPlaceSuggestions(query) {
+  if (!query || query.length < 2) return [];
+  const key = query.toLowerCase();
+  if (acCache[key]) return acCache[key];
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ' India')}&limit=6&addressdetails=1&accept-language=en`;
+    const res = await fetch(url, { headers: { 'User-Agent': 'GoJourney/1.0' } });
+    const data = await res.json();
+    const results = data.map(p => ({
+      name: p.address?.city || p.address?.town || p.address?.village || p.address?.county || p.name,
+      state: p.address?.state || '',
+      country: p.address?.country || 'India',
+      type: p.type,
+      display: p.display_name,
+    })).filter(p => p.name);
+    acCache[key] = results;
+    return results;
+  } catch(e) { return []; }
+}
+
+function getIcon(type) {
+  const icons = { city: '🏙️', town: '🏘️', village: '🏡', airport: '✈️', station: '🚉', administrative: '📍' };
+  return icons[type] || '📍';
+}
+
+function showDropdown(inputEl, results) {
+  removeDropdown(inputEl);
+  if (!results.length) return;
+  const wrapper = inputEl.closest('.ac-wrapper') || inputEl.parentElement;
+  const dropdown = document.createElement('div');
+  dropdown.className = 'ac-dropdown';
+  dropdown.id = 'ac-' + inputEl.id;
+  acActiveIndex = -1;
+
+  results.forEach((r, i) => {
+    const item = document.createElement('div');
+    item.className = 'ac-item';
+    item.innerHTML = `<span class="ac-icon">${getIcon(r.type)}</span>
+      <div><div class="ac-main">${r.name}</div>
+      <div class="ac-sub">${r.state}${r.state && r.country ? ', ' : ''}${r.country}</div></div>`;
+    item.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      inputEl.value = r.name;
+      removeDropdown(inputEl);
+      inputEl.dispatchEvent(new Event('input'));
+    });
+    dropdown.appendChild(item);
+  });
+
+  wrapper.style.position = 'relative';
+  wrapper.appendChild(dropdown);
+}
+
+function removeDropdown(inputEl) {
+  const old = document.getElementById('ac-' + inputEl.id);
+  if (old) old.remove();
+  acActiveIndex = -1;
+}
+
+function showLoading(inputEl) {
+  removeDropdown(inputEl);
+  const wrapper = inputEl.closest('.ac-wrapper') || inputEl.parentElement;
+  const dropdown = document.createElement('div');
+  dropdown.className = 'ac-dropdown';
+  dropdown.id = 'ac-' + inputEl.id;
+  dropdown.innerHTML = '<div class="ac-loading">🔍 Searching places...</div>';
+  wrapper.style.position = 'relative';
+  wrapper.appendChild(dropdown);
+}
+
+function attachAutocomplete(inputId) {
+  const el = document.getElementById(inputId);
+  if (!el) return;
+
+  // Wrap in ac-wrapper if not already
+  if (!el.closest('.ac-wrapper')) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'ac-wrapper';
+    el.parentNode.insertBefore(wrapper, el);
+    wrapper.appendChild(el);
+  }
+
+  let timer;
+  el.addEventListener('input', () => {
+    clearTimeout(timer);
+    const val = el.value.trim();
+    if (val.length < 2) { removeDropdown(el); return; }
+    showLoading(el);
+    timer = setTimeout(async () => {
+      const results = await fetchPlaceSuggestions(val);
+      showDropdown(el, results);
+    }, 350);
+  });
+
+  el.addEventListener('keydown', (e) => {
+    const dropdown = document.getElementById('ac-' + inputId);
+    if (!dropdown) return;
+    const items = dropdown.querySelectorAll('.ac-item');
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      acActiveIndex = Math.min(acActiveIndex + 1, items.length - 1);
+      items.forEach((it, i) => it.classList.toggle('active', i === acActiveIndex));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      acActiveIndex = Math.max(acActiveIndex - 1, 0);
+      items.forEach((it, i) => it.classList.toggle('active', i === acActiveIndex));
+    } else if (e.key === 'Enter' && acActiveIndex >= 0) {
+      e.preventDefault();
+      items[acActiveIndex]?.dispatchEvent(new Event('mousedown'));
+    } else if (e.key === 'Escape') {
+      removeDropdown(el);
+    }
+  });
+
+  el.addEventListener('blur', () => setTimeout(() => removeDropdown(el), 200));
 }
 
 document.addEventListener('DOMContentLoaded', init);
