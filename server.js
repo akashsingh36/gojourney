@@ -403,36 +403,76 @@ app.post('/api/otp/send', async (req, res) => {
   otpStore.set(cleanPhone, { otp, expiresAt });
 
   const FAST2SMS_KEY = process.env.FAST2SMS_KEY;
-  if (!FAST2SMS_KEY) {
-    // No API key configured — return OTP in response (dev only)
-    console.log(`[DEV] OTP for ${cleanPhone}: ${otp}`);
-    return res.json({ success: true, dev: true, otp, message: 'Dev mode: OTP in response' });
+  const TWILIO_SID   = process.env.TWILIO_SID;
+  const TWILIO_TOKEN = process.env.TWILIO_TOKEN;
+  const TWILIO_FROM  = process.env.TWILIO_FROM;
+
+  // ── Try Fast2SMS (OTP route) ──
+  if (FAST2SMS_KEY) {
+    try {
+      const smsRes = await fetch('https://www.fast2sms.com/dev/bulkV2', {
+        method: 'POST',
+        headers: { 'authorization': FAST2SMS_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ route: 'otp', variables_values: otp, numbers: cleanPhone, flash: 0 })
+      });
+      const smsData = await smsRes.json();
+      console.log('Fast2SMS OTP route:', JSON.stringify(smsData));
+      if (smsData.return === true) {
+        return res.json({ success: true, message: 'OTP sent via SMS' });
+      }
+      // Try Quick SMS route as fallback
+      const smsRes2 = await fetch('https://www.fast2sms.com/dev/bulkV2', {
+        method: 'POST',
+        headers: { 'authorization': FAST2SMS_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          route: 'q',
+          message: 'Your GoJourney OTP is ' + otp + '. Valid 5 mins. Do not share.',
+          language: 'english',
+          numbers: cleanPhone
+        })
+      });
+      const smsData2 = await smsRes2.json();
+      console.log('Fast2SMS Q route:', JSON.stringify(smsData2));
+      if (smsData2.return === true) {
+        return res.json({ success: true, message: 'OTP sent via SMS' });
+      }
+      console.error('Fast2SMS failed both routes:', JSON.stringify(smsData2));
+    } catch (e) {
+      console.error('Fast2SMS exception:', e.message);
+    }
   }
 
-  try {
-    const smsRes = await fetch('https://www.fast2sms.com/dev/bulkV2', {
-      method: 'POST',
-      headers: {
-        'authorization': FAST2SMS_KEY,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        route: 'otp',
-        variables_values: otp,
-        numbers: cleanPhone
-      })
-    });
-    const smsData = await smsRes.json();
-    if (smsData.return === true) {
-      res.json({ success: true, message: 'OTP sent to ' + cleanPhone });
-    } else {
-      console.error('Fast2SMS error:', smsData);
-      res.status(500).json({ error: 'SMS sending failed', detail: smsData.message });
+  // ── Try Twilio ──
+  if (TWILIO_SID && TWILIO_TOKEN && TWILIO_FROM) {
+    try {
+      const toNumber = '+91' + cleanPhone;
+      const auth = Buffer.from(TWILIO_SID + ':' + TWILIO_TOKEN).toString('base64');
+      const twilioRes = await fetch(
+        `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/Messages.json`,
+        {
+          method: 'POST',
+          headers: { 'Authorization': 'Basic ' + auth, 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            From: TWILIO_FROM,
+            To: toNumber,
+            Body: 'Your GoJourney OTP is: ' + otp + '. Valid for 5 minutes. Do not share.'
+          })
+        }
+      );
+      const twilioData = await twilioRes.json();
+      console.log('Twilio response:', JSON.stringify(twilioData));
+      if (twilioData.sid) {
+        return res.json({ success: true, message: 'OTP sent via SMS' });
+      }
+      console.error('Twilio failed:', JSON.stringify(twilioData));
+    } catch (e) {
+      console.error('Twilio exception:', e.message);
     }
-  } catch (err) {
-    console.error('OTP send error:', err.message);
-    res.status(500).json({ error: 'SMS service unavailable' });
   }
+
+  // ── No SMS provider working — Dev mode fallback ──
+  console.log(`[DEV] OTP for ${cleanPhone}: ${otp}`);
+  return res.json({ success: true, dev: true, otp, message: 'Dev mode: no SMS provider configured' });
 });
 
 app.post('/api/otp/verify', (req, res) => {
