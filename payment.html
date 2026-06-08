@@ -293,6 +293,7 @@ button { cursor: pointer; border: none; outline: none; font-family: inherit; }
     </div>
 
     <button class="otp-verify-btn" id="otpVerifyBtn" onclick="verifyOTP()" disabled>Verify & Confirm Booking</button>
+    <div id="devOtpHint" style="display:none;background:#fef3c7;border:2px solid #f59e0b;border-radius:12px;padding:16px;margin:12px 0;text-align:center"></div>
     <div class="otp-resend">
       Didn't receive it? <button id="resendBtn" onclick="resendOTP()" disabled>Resend OTP</button>
     </div>
@@ -719,10 +720,19 @@ async function sendOTP() {
 
     // Dev mode: backend returned OTP in response (no SMS key configured)
     if (data.dev && data.otp) {
-      generatedOTP = data.otp; // only used in dev fallback
-      showToast('📱 [DEV] OTP: ' + data.otp + ' (SMS not configured)');
+      generatedOTP = data.otp;
+      // Show OTP clearly in modal since no SMS provider is set up
+      const hint = document.getElementById('devOtpHint');
+      if (hint) {
+        hint.style.display = 'block';
+        hint.innerHTML = '<div style="font-size:11px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">⚠️ SMS not configured — Your OTP is:</div>'
+          + '<div style="font-size:32px;font-weight:800;letter-spacing:8px;color:#0A4DA3;font-family:monospace">' + data.otp + '</div>'
+          + '<div style="font-size:11px;color:#78350f;margin-top:4px">Enter this code above to verify</div>';
+      }
     } else {
       generatedOTP = null; // will verify via backend
+      const hint = document.getElementById('devOtpHint');
+      if (hint) hint.style.display = 'none';
       showToast('📱 OTP sent to ' + phone);
     }
 
@@ -785,8 +795,21 @@ function resendOTP() {
   })
   .then(r => r.json())
   .then(data => {
-    if (data.dev && data.otp) { generatedOTP = data.otp; showToast('📱 [DEV] OTP: ' + data.otp); }
-    else { generatedOTP = null; showToast('📱 OTP resent to ' + phone); }
+    if (data.dev && data.otp) {
+      generatedOTP = data.otp;
+      const hint = document.getElementById('devOtpHint');
+      if (hint) {
+        hint.style.display = 'block';
+        hint.innerHTML = '<div style="font-size:11px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">⚠️ SMS not configured — Your OTP is:</div>'
+          + '<div style="font-size:32px;font-weight:800;letter-spacing:8px;color:#0A4DA3;font-family:monospace">' + data.otp + '</div>'
+          + '<div style="font-size:11px;color:#78350f;margin-top:4px">Enter this code above to verify</div>';
+      }
+    } else {
+      generatedOTP = null;
+      const hint = document.getElementById('devOtpHint');
+      if (hint) hint.style.display = 'none';
+      showToast('📱 OTP resent to ' + phone);
+    }
   })
   .catch(() => showToast('❌ Could not resend OTP'));
   startOtpTimer();
@@ -860,6 +883,9 @@ async function verifyOTP() {
     otpVerified = true;
     clearInterval(otpTimerInterval);
     document.getElementById('otpOverlay').classList.remove('show');
+    const hint = document.getElementById('devOtpHint');
+    if (hint) { hint.style.display = 'none'; hint.innerHTML = ''; }
+    generatedOTP = null;
     document.getElementById('otpVerifiedStrip').style.display = 'block';
     document.getElementById('phoneVerifiedBadge').style.display = 'block';
     document.getElementById('sendOtpBtn').textContent = '✅ Verified';
