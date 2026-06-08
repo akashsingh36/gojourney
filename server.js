@@ -12,7 +12,7 @@ const path = require('path');
 const fetch = require("node-fetch");
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8080;
 const JWT_SECRET = process.env.JWT_SECRET || 'gojourney_secret_key_2026';
 const MONGO_URI = process.env.MONGO_URI;
 
