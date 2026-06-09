@@ -1492,10 +1492,10 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
 /* ===== LOCATION AUTOCOMPLETE ===== */
 .ac-wrapper { position: relative; width: 100%; }
 .ac-dropdown {
-  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  position: fixed;
   background: white; border: 1.5px solid var(--primary);
   border-radius: 12px; box-shadow: 0 8px 32px rgba(10,77,163,0.15);
-  z-index: 9999; max-height: 420px; overflow-y: auto;
+  z-index: 99999; max-height: 320px; overflow-y: auto;
   animation: acFadeIn 0.15s ease;
 }
 @keyframes acFadeIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
@@ -4392,10 +4392,16 @@ function highlightMatch(text, query) {
     text.slice(idx + query.length);
 }
 
+function positionDropdown(inputEl, dropdown) {
+  const rect = inputEl.getBoundingClientRect();
+  dropdown.style.top   = (rect.bottom + 4) + 'px';
+  dropdown.style.left  = rect.left + 'px';
+  dropdown.style.width = rect.width + 'px';
+}
+
 function showDropdown(inputEl, results) {
   removeDropdown(inputEl);
   if (!results.length) return;
-  const wrapper = inputEl.closest('.ac-wrapper') || inputEl.parentElement;
   const dropdown = document.createElement('div');
   dropdown.className = 'ac-dropdown';
   dropdown.id = 'ac-' + inputEl.id;
@@ -4418,25 +4424,38 @@ function showDropdown(inputEl, results) {
     dropdown.appendChild(item);
   });
 
-  wrapper.style.position = 'relative';
-  wrapper.appendChild(dropdown);
+  document.body.appendChild(dropdown);
+  positionDropdown(inputEl, dropdown);
+  const reposition = () => positionDropdown(inputEl, dropdown);
+  dropdown._reposition = reposition;
+  window.addEventListener('scroll', reposition, true);
+  window.addEventListener('resize', reposition);
 }
 
 function removeDropdown(inputEl) {
   const old = document.getElementById('ac-' + inputEl.id);
-  if (old) old.remove();
+  if (old) {
+    if (old._reposition) {
+      window.removeEventListener('scroll', old._reposition, true);
+      window.removeEventListener('resize', old._reposition);
+    }
+    old.remove();
+  }
   acActiveIndex = -1;
 }
 
 function showLoading(inputEl) {
   removeDropdown(inputEl);
-  const wrapper = inputEl.closest('.ac-wrapper') || inputEl.parentElement;
   const dropdown = document.createElement('div');
   dropdown.className = 'ac-dropdown';
   dropdown.id = 'ac-' + inputEl.id;
   dropdown.innerHTML = '<div class="ac-loading">🔍 Searching places...</div>';
-  wrapper.style.position = 'relative';
-  wrapper.appendChild(dropdown);
+  document.body.appendChild(dropdown);
+  positionDropdown(inputEl, dropdown);
+  const reposition = () => positionDropdown(inputEl, dropdown);
+  dropdown._reposition = reposition;
+  window.addEventListener('scroll', reposition, true);
+  window.addEventListener('resize', reposition);
 }
 
 function attachAutocomplete(inputId) {
