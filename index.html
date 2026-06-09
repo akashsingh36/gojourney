@@ -1686,16 +1686,7 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
         <div class="search-row">
           <div class="search-field">
             <label>Destination</label>
-            <input type="text" id="hotelDest" placeholder="Where are you going?" list="destinations-list">
-            <datalist id="destinations-list">
-              <option value="Mumbai, Maharashtra">
-              <option value="Delhi, NCR">
-              <option value="Goa">
-              <option value="Jaipur, Rajasthan">
-              <option value="Kerala">
-              <option value="Manali, Himachal Pradesh">
-              <option value="Shimla, Himachal Pradesh">
-            </datalist>
+            <input type="text" id="hotelDest" placeholder="Where are you going?" autocomplete="off">
           </div>
           <div class="search-field">
             <label>Check In</label>
@@ -1722,11 +1713,11 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
         <div class="search-row">
           <div class="search-field">
             <label>Pickup Location</label>
-            <input type="text" id="cabFrom" placeholder="From (city or area)">
+            <input type="text" id="cabFrom" placeholder="From (city or area)" autocomplete="off">
           </div>
           <div class="search-field">
             <label>Drop Location</label>
-            <input type="text" id="cabTo" placeholder="To (city or area)">
+            <input type="text" id="cabTo" placeholder="To (city or area)" autocomplete="off">
           </div>
           <div class="search-field">
             <label>Date & Time</label>
@@ -1752,11 +1743,11 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
         <div class="search-row">
           <div class="search-field">
             <label>From</label>
-            <input type="text" id="busFrom" placeholder="Departure city">
+            <input type="text" id="busFrom" placeholder="Departure city" autocomplete="off">
           </div>
           <div class="search-field">
             <label>To</label>
-            <input type="text" id="busTo" placeholder="Destination city">
+            <input type="text" id="busTo" placeholder="Destination city" autocomplete="off">
           </div>
           <div class="search-field">
             <label>Date</label>
@@ -1780,7 +1771,7 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
         <div class="search-row">
           <div class="search-field">
             <label>Destination</label>
-            <input type="text" id="tourDest" placeholder="Where do you want to explore?">
+            <input type="text" id="tourDest" placeholder="Where do you want to explore?" autocomplete="off">
           </div>
           <div class="search-field">
             <label>Travel Date</label>
@@ -1814,31 +1805,11 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
         <div class="search-row">
           <div class="search-field">
             <label>From (City / Area)</label>
-            <input type="text" id="shuttleFrom" placeholder="e.g. Delhi Airport, Mumbai CST" list="shuttle-from-list">
-            <datalist id="shuttle-from-list">
-              <option value="Indira Gandhi International Airport, Delhi">
-              <option value="Chhatrapati Shivaji Terminus, Mumbai">
-              <option value="Kempegowda International Airport, Bangalore">
-              <option value="Chennai Central Station">
-              <option value="Hyderabad Rajiv Gandhi Airport">
-              <option value="Pune Railway Station">
-              <option value="Jaipur Airport">
-              <option value="Ahmedabad Airport">
-            </datalist>
+            <input type="text" id="shuttleFrom" placeholder="e.g. Delhi Airport, Mumbai CST" autocomplete="off">
           </div>
           <div class="search-field">
             <label>To (City / Area)</label>
-            <input type="text" id="shuttleTo" placeholder="e.g. Connaught Place, Bandra" list="shuttle-to-list">
-            <datalist id="shuttle-to-list">
-              <option value="Connaught Place, Delhi">
-              <option value="Bandra, Mumbai">
-              <option value="MG Road, Bangalore">
-              <option value="T. Nagar, Chennai">
-              <option value="Hitech City, Hyderabad">
-              <option value="Koregaon Park, Pune">
-              <option value="Vaishali Nagar, Jaipur">
-              <option value="Navrangpura, Ahmedabad">
-            </datalist>
+            <input type="text" id="shuttleTo" placeholder="e.g. Connaught Place, Bandra" autocomplete="off">
           </div>
           <div class="search-field">
             <label>Date</label>
