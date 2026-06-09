@@ -4397,7 +4397,6 @@ function positionDropdown(inputEl, dropdown) {
   const rect = inputEl.getBoundingClientRect();
   const minW = 280;
   const w = Math.max(rect.width, minW);
-  // Prevent going off right edge of screen
   const left = Math.min(rect.left, window.innerWidth - w - 8);
   dropdown.style.top   = (rect.bottom + 4) + 'px';
   dropdown.style.left  = left + 'px';
@@ -4413,7 +4412,7 @@ function showDropdown(inputEl, results) {
   acActiveIndex = -1;
   const query = inputEl.value.trim();
 
-  results.forEach((r, i) => {
+  results.forEach((r) => {
     const item = document.createElement('div');
     item.className = 'ac-item';
     const subtitle = [r.state, r.country].filter(Boolean).join(', ');
@@ -4422,9 +4421,11 @@ function showDropdown(inputEl, results) {
       <div class="ac-sub">${subtitle}</div></div>`;
     item.addEventListener('mousedown', (e) => {
       e.preventDefault();
+      inputEl._acSelecting = true;       // flag: selection in progress
       inputEl.value = r.name;
       removeDropdown(inputEl);
-      inputEl.dispatchEvent(new Event('input'));
+      inputEl.focus();
+      inputEl._acSelecting = false;      // clear flag after focus restored
     });
     dropdown.appendChild(item);
   });
@@ -4477,11 +4478,11 @@ function attachAutocomplete(inputId) {
 
   let timer;
   el.addEventListener('input', () => {
+    if (el._acSelecting) return;         // ignore input events fired during selection
     clearTimeout(timer);
     const val = el.value.trim();
     if (val.length < 1) { removeDropdown(el); return; }
 
-    // Show instant local results immediately (all matches, no cap)
     const localResults = searchLocalPlaces(val);
     if (localResults.length > 0) {
       showDropdown(el, localResults.map(p => ({ name: p.name, state: p.state, country: 'India', type: p.type })));
@@ -4489,10 +4490,9 @@ function attachAutocomplete(inputId) {
       showLoading(el);
     }
 
-    // Always fetch Nominatim after debounce to enrich with villages/districts/rare places
     timer = setTimeout(async () => {
       const results = await fetchPlaceSuggestions(val);
-      if (el.value.trim() === val) { // only update if input hasn't changed
+      if (el.value.trim() === val && !el._acSelecting) {
         showDropdown(el, results);
       }
     }, 350);
@@ -4512,13 +4512,17 @@ function attachAutocomplete(inputId) {
       items.forEach((it, i) => it.classList.toggle('active', i === acActiveIndex));
     } else if (e.key === 'Enter' && acActiveIndex >= 0) {
       e.preventDefault();
-      items[acActiveIndex]?.dispatchEvent(new Event('mousedown'));
+      items[acActiveIndex]?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
     } else if (e.key === 'Escape') {
       removeDropdown(el);
     }
   });
 
-  el.addEventListener('blur', () => setTimeout(() => removeDropdown(el), 200));
+  // Only close on blur if a selection isn't happening
+  el.addEventListener('blur', () => {
+    if (el._acSelecting) return;
+    setTimeout(() => removeDropdown(el), 150);
+  });
 }
 
 document.addEventListener('DOMContentLoaded', init);
