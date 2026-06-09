@@ -285,7 +285,7 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
   background: rgba(255,255,255,0.97);
   backdrop-filter: blur(20px);
   border-radius: 20px;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 20px 60px rgba(0,0,0,0.25);
   max-width: 900px;
   animation: fadeUp 0.8s 0.5s ease both;
@@ -296,6 +296,7 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
   border-bottom: 1px solid var(--border);
   overflow-x: auto;
   scrollbar-width: none;
+  border-radius: 20px 20px 0 0;
 }
 .search-tabs::-webkit-scrollbar { display: none; }
 .stab {
@@ -318,7 +319,7 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
   background: white;
 }
 .stab:hover:not(.active) { color: var(--primary); background: var(--light); }
-.tab-content { padding: 20px; }
+.tab-content { padding: 20px; border-radius: 0 0 20px 20px; }
 .search-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
