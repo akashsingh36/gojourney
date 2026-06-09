@@ -2579,6 +2579,14 @@ async function performSearch(type) {
     document.getElementById('resultsSubtitle') && (document.getElementById('resultsSubtitle').textContent =
       dist ? '📏 Estimated distance: ' + dist + ' km • ' + results.length + ' vehicles' : results.length + ' vehicles');
     App.searchParams = { from, to, dist };
+    // Sync preview bar to same distance so they always match
+    const previewText = document.getElementById('cabPreviewText');
+    const previewBar = document.getElementById('cabPricePreview');
+    if (previewText && previewBar) {
+      previewBar.style.display = 'block';
+      const fares = CABS.map(c => `${c.name}: <strong>₹${Math.max(c.minFare, Math.round(dist * c.price)).toLocaleString()}</strong>`).join(' &nbsp;|&nbsp; ');
+      previewText.innerHTML = `📏 ${dist} km &nbsp;|&nbsp; ${fares}`;
+    }
   } else if (type === 'buses') {
     const from = document.getElementById('busFrom').value.trim();
     const to   = document.getElementById('busTo').value.trim();
@@ -4047,13 +4055,13 @@ function init() {
   window.addEventListener('scroll', () => observeReveal(), { passive: true });
 
   // Real-time cab price preview
-  let cabDebounce;
   ['cabFrom', 'cabTo'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener('input', () => {
-      clearTimeout(cabDebounce);
-      cabDebounce = setTimeout(updateCabPricePreview, 800);
+      if (el._acSelecting) return;
+      clearTimeout(window._cabPreviewTimer);
+      window._cabPreviewTimer = setTimeout(updateCabPricePreview, 800);
     });
   });
 
@@ -4434,6 +4442,11 @@ function showDropdown(inputEl, results) {
       removeDropdown(inputEl);
       inputEl.focus();
       inputEl._acSelecting = false;      // clear flag after focus restored
+      // Refresh cab price preview if a cab input was just filled
+      if (inputEl.id === 'cabFrom' || inputEl.id === 'cabTo') {
+        clearTimeout(window._cabPreviewTimer);
+        window._cabPreviewTimer = setTimeout(updateCabPricePreview, 100);
+      }
     });
     dropdown.appendChild(item);
   });
