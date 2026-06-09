@@ -1715,11 +1715,11 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
         <div class="search-row">
           <div class="search-field">
             <label>Pickup Location</label>
-            <input type="text" id="cabFrom" placeholder="From (city or area)" autocomplete="off">
+            <input type="text" id="cabFrom" placeholder="From (city or area)" autocomplete="off" autocomplete="off">
           </div>
           <div class="search-field">
             <label>Drop Location</label>
-            <input type="text" id="cabTo" placeholder="To (city or area)" autocomplete="off">
+            <input type="text" id="cabTo" placeholder="To (city or area)" autocomplete="off" autocomplete="off">
           </div>
           <div class="search-field">
             <label>Date & Time</label>
@@ -1745,11 +1745,11 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
         <div class="search-row">
           <div class="search-field">
             <label>From</label>
-            <input type="text" id="busFrom" placeholder="Departure city" autocomplete="off">
+            <input type="text" id="busFrom" placeholder="Departure city" autocomplete="off" autocomplete="off">
           </div>
           <div class="search-field">
             <label>To</label>
-            <input type="text" id="busTo" placeholder="Destination city" autocomplete="off">
+            <input type="text" id="busTo" placeholder="Destination city" autocomplete="off" autocomplete="off">
           </div>
           <div class="search-field">
             <label>Date</label>
@@ -1773,7 +1773,7 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
         <div class="search-row">
           <div class="search-field">
             <label>Destination</label>
-            <input type="text" id="tourDest" placeholder="Where do you want to explore?" autocomplete="off">
+            <input type="text" id="tourDest" placeholder="Where do you want to explore?" autocomplete="off" autocomplete="off">
           </div>
           <div class="search-field">
             <label>Travel Date</label>
@@ -2460,14 +2460,22 @@ function scrollToHero() {
 }
 
 // ===== GEOCODING (Nominatim - free) =====
+const _geocodeCache = {};
 async function geocodeCity(query) {
+  // Normalise: strip trailing ", India" variants so cache keys are consistent
+  const key = query.trim().toLowerCase().replace(/,?\s*india\s*$/i, '').trim();
+  if (_geocodeCache[key]) return _geocodeCache[key];
   try {
     const resp = await fetch(
-      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&countrycodes=in`,
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(key + ', India')}&format=json&limit=1&countrycodes=in`,
       { headers: { 'Accept-Language': 'en', 'User-Agent': 'GoJourney/1.0' } }
     );
     const data = await resp.json();
-    if (data && data[0]) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), display: data[0].display_name };
+    if (data && data[0]) {
+      const result = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), display: data[0].display_name };
+      _geocodeCache[key] = result;
+      return result;
+    }
     return null;
   } catch(e) { return null; }
 }
@@ -4073,7 +4081,7 @@ async function updateCabPricePreview() {
     const [fromC, toC] = await Promise.all([geocodeCity(from), geocodeCity(to)]);
     if (!fromC || !toC) { text.textContent = '⚠️ Could not geocode locations. Enter full city names.'; return; }
     const dist = haversineKm(fromC, toC);
-    const fares = CABS.map(c => `${c.name}: <strong>₹${Math.max(c.minFare, dist * c.pricePerKm).toLocaleString()}</strong>`).join(' &nbsp;|&nbsp; ');
+    const fares = CABS.map(c => `${c.name}: <strong>₹${Math.max(c.minFare, Math.round(dist * c.pricePerKm)).toLocaleString()}</strong>`).join(' &nbsp;|&nbsp; ');
     text.innerHTML = `📏 ${dist} km &nbsp;|&nbsp; ${fares}`;
   } catch(e) {
     text.textContent = '⚠️ Could not calculate distance.';
