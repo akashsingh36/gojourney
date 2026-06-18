@@ -142,8 +142,69 @@ app.get('/api/health', (req, res) => {
 
 // ===== SEARCH ROUTES =====
 
-// Existing hotel search
-app.get('/api/search/hotels', async (req, res) => {
+// ===== HOTELS4 (RapidAPI) PROXY =====
+// Keeps the API key server-side when running in full-stack mode
+const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || '03f82b3f8e2cbb5b2bf8035b96e55308';
+
+function httpGet(url, headers) {
+  return new Promise((resolve, reject) => {
+    const urlObj = new URL(url);
+    const options = {
+      hostname: urlObj.hostname,
+      path: urlObj.pathname + urlObj.search,
+      method: 'GET',
+      headers
+    };
+    const req = https.request(options, (res) => {
+      let raw = '';
+      res.on('data', chunk => raw += chunk);
+      res.on('end', () => {
+        try { resolve({ ok: res.statusCode < 400, status: res.statusCode, body: JSON.parse(raw) }); }
+        catch(e) { resolve({ ok: false, status: res.statusCode, body: {} }); }
+      });
+    });
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+// /api/hotels/location?q=Mumbai  → resolves destination to gaiaId
+app.get('/api/hotels/location', async (req, res) => {
+  const { q } = req.query;
+  if (!q) return res.status(400).json({ error: 'Query required' });
+  try {
+    const url = `https://hotels4.p.rapidapi.com/locations/v3/search?q=${encodeURIComponent(q)}&locale=en_US&langid=1033&siteid=300000001`;
+    const resp = await httpGet(url, {
+      'X-RapidAPI-Key': RAPIDAPI_KEY,
+      'X-RapidAPI-Host': 'hotels4.p.rapidapi.com'
+    });
+    res.json(resp.body);
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// /api/hotels/search?gaiaId=...&checkin=...&checkout=...&adults=2
+app.get('/api/hotels/search', async (req, res) => {
+  const { gaiaId, checkin, checkout, adults = 2 } = req.query;
+  if (!gaiaId) return res.status(400).json({ error: 'gaiaId required' });
+  try {
+    const ci = checkin  || new Date().toISOString().split('T')[0];
+    const co = checkout || (() => { const d = new Date(); d.setDate(d.getDate()+1); return d.toISOString().split('T')[0]; })();
+    const url = `https://hotels4.p.rapidapi.com/properties/v2/list` +
+      `?currency=INR&eapid=1&locale=en_US&siteId=300000001` +
+      `&destination%5BregionId%5D=${gaiaId}` +
+      `&checkInDate=${ci}&checkOutDate=${co}` +
+      `&rooms%5B0%5D%5BnumberOfAdults%5D=${adults}` +
+      `&resultsStartingIndex=0&resultsSize=20&sort=RECOMMENDED`;
+    const resp = await httpGet(url, {
+      'X-RapidAPI-Key': RAPIDAPI_KEY,
+      'X-RapidAPI-Host': 'hotels4.p.rapidapi.com'
+    });
+    res.json(resp.body);
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 

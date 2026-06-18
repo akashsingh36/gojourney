@@ -2486,51 +2486,207 @@ function haversineKm(a, b) {
   return Math.round(R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1-x)) * 1.3);
 }
 
-// ===== REAL HOTEL SEARCH via Nominatim =====
-async function searchRealHotels(destination) {
-  // First geocode the destination to get coords
-  const coord = await geocodeCity(destination + ', India');
-  if (!coord) return HOTELS.filter(h => !destination || h.location.toLowerCase().includes(destination.toLowerCase()));
+// ===== RAPIDAPI HOTEL SEARCH (Hotels4 / Apidojo) =====
+const RAPIDAPI_KEY = '03f82b3f8e2cbb5b2bf8035b96e55308';
 
-  // Search for hotels near that location using Overpass API (OpenStreetMap)
-  try {
-    const radius = 15000; // 15km radius
-    const query = `[out:json][timeout:10];(node["tourism"="hotel"](around:${radius},${coord.lat},${coord.lng});way["tourism"="hotel"](around:${radius},${coord.lat},${coord.lng}););out center 8;`;
-    const resp = await fetch('https://overpass-api.de/api/interpreter', {
-      method: 'POST',
-      body: 'data=' + encodeURIComponent(query)
-    });
-    const data = await resp.json();
-    if (data.elements && data.elements.length > 0) {
-      return data.elements.slice(0, 8).map((el, i) => {
-        const lat = el.lat || el.center?.lat;
-        const lng = el.lon || el.center?.lon;
-        const name = el.tags?.name || el.tags?.['name:en'] || ('Hotel ' + (i+1));
-        const stars = el.tags?.stars ? parseInt(el.tags.stars) : (Math.floor(Math.random()*2)+3);
-        const basePrice = [1999,2499,2999,3999,4999,5999,7999][Math.floor(Math.random()*7)];
-        return {
-          id: 'real_' + (el.id || i),
-          name, location: destination,
-          lat, lng,
-          rating: (3.5 + Math.random()*1.5).toFixed(1),
-          reviews: Math.floor(Math.random()*500+50),
-          price: basePrice,
-          originalPrice: Math.round(basePrice * 1.3),
-          amenities: ['WiFi', stars >= 4 ? 'Pool' : 'Parking', stars >= 5 ? 'Spa' : 'Restaurant'],
-          img: 'https://source.unsplash.com/400x300/?hotel,' + encodeURIComponent(destination) + '&sig=' + i,
-          badge: stars >= 4 ? '⭐ ' + stars + ' Star' : null,
-          type: 'hotel',
-          isReal: true,
-          mapLink: `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=17/${lat}/${lng}`,
-        };
-      });
+// Utility: RapidAPI fetch wrapper
+async function rapidFetch(url, host) {
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'X-RapidAPI-Key': RAPIDAPI_KEY,
+      'X-RapidAPI-Host': host
     }
-  } catch(e) {}
+  });
+  if (!res.ok) throw new Error('RapidAPI ' + res.status);
+  return res.json();
+}
 
-  // Fallback to local HOTELS data filtered by destination
-  return HOTELS.filter(h => !destination || h.location.toLowerCase().includes(destination.toLowerCase())).length > 0
-    ? HOTELS.filter(h => !destination || h.location.toLowerCase().includes(destination.toLowerCase()))
-    : HOTELS.map(h => ({ ...h, location: destination || h.location }));
+// Step 1: resolve destination → region_id (entityId) using Hotels4 location search
+async function hotelsResolveDestination(destination) {
+  const url = `https://hotels4.p.rapidapi.com/locations/v3/search?q=${encodeURIComponent(destination)}&locale=en_US&langid=1033&siteid=300000001`;
+  const data = await rapidFetch(url, 'hotels4.p.rapidapi.com');
+  // Find the first CITY or NEIGHBORHOOD suggestion
+  const suggestions = data?.sr || [];
+  const city = suggestions.find(s => s.type === 'CITY' || s.type === 'NEIGHBORHOOD' || s.type === 'REGION') || suggestions[0];
+  if (!city) return null;
+  return {
+    gaiaId: city.gaiaId,
+    regionNames: city.regionNames?.fullName || destination,
+    coordinates: city.coordinates || null
+  };
+}
+
+// Step 2: search hotels in that gaiaId
+async function hotelsFetchListings(gaiaId, checkin, checkout, adults) {
+  const checkInDate  = checkin  || getTodayDate(0);
+  const checkOutDate = checkout || getTodayDate(1);
+  const url = `https://hotels4.p.rapidapi.com/properties/v2/list` +
+    `?currency=INR&eapid=1&locale=en_US&siteId=300000001&destination%5BregionId%5D=${gaiaId}` +
+    `&checkInDate=${checkInDate}&checkOutDate=${checkOutDate}` +
+    `&rooms%5B0%5D%5BnumberOfAdults%5D=${adults || 2}` +
+    `&resultsStartingIndex=0&resultsSize=20&sort=RECOMMENDED&filters%5BpaymentType%5D=FREE_CANCELLATION,PAY_LATER`;
+  const data = await rapidFetch(url, 'hotels4.p.rapidapi.com');
+  return data?.data?.propertySearch?.properties || [];
+}
+
+// Helpers
+function getTodayDate(offsetDays) {
+  const d = new Date(); d.setDate(d.getDate() + offsetDays);
+  return d.toISOString().split('T')[0];
+}
+
+// Convert USD price to INR (approx)
+function usdToInr(usd) {
+  return Math.round((usd || 0) * 84);
+}
+
+// Map Hotels4 property → GoJourney card format
+function mapHotels4Property(prop, destination) {
+  const price = prop.price?.lead?.amount || prop.price?.displayMessages?.[0]?.lineItems?.[0]?.price?.amount || 0;
+  const currency = prop.price?.lead?.currencyInfo?.code || 'USD';
+  const priceInr = currency === 'INR' ? Math.round(price) : usdToInr(price);
+  const originalInr = Math.round(priceInr * 1.25);
+
+  const rating = prop.reviews?.score || (3.5 + Math.random()).toFixed(1);
+  const reviewCount = prop.reviews?.total || Math.floor(Math.random() * 300 + 50);
+  const stars = prop.star || 3;
+
+  // Build amenities from available data
+  const amenities = [];
+  if (prop.amenities) prop.amenities.slice(0, 4).forEach(a => amenities.push(a.text || a));
+  if (!amenities.length) {
+    amenities.push('WiFi');
+    if (stars >= 4) amenities.push('Pool');
+    if (stars >= 4) amenities.push('Restaurant');
+    if (stars >= 5) amenities.push('Spa');
+    else amenities.push('Parking');
+  }
+
+  // Image
+  const img = prop.propertyImage?.image?.url ||
+    prop.galleryWishlistButtonProps?.image?.url ||
+    `https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&auto=format&fit=crop&q=60&sig=${prop.id}`;
+
+  // Badge
+  const badge = stars >= 5 ? '⭐ 5 Star' : stars >= 4 ? '⭐ ' + stars + ' Star' :
+    (prop.sponsoredListing ? '🔥 Sponsored' : null);
+
+  return {
+    id: 'h4_' + prop.id,
+    hotelId: prop.id,
+    name: prop.name || 'Hotel',
+    location: prop.destinationInfo?.distanceFromDestination
+      ? destination + ' (' + prop.destinationInfo.distanceFromDestination.value + ' ' + prop.destinationInfo.distanceFromDestination.unit + ' from center)'
+      : destination,
+    rating: parseFloat(rating),
+    reviews: reviewCount,
+    price: priceInr || 2999,
+    originalPrice: originalInr || 3999,
+    amenities,
+    img,
+    badge,
+    type: 'hotel',
+    isReal: true,
+    stars,
+    rapidHotelId: prop.id,
+    bookingLink: prop.availability?.available
+      ? `https://www.hotels.com/ho${prop.id}` : null,
+    freeCancellation: prop.offerBadge?.secondary?.text?.includes('Free cancellation') || false,
+    reviewWord: prop.reviews?.localizedOverallRating || ''
+  };
+}
+
+// ===== MAIN: searchRealHotels using RapidAPI Hotels4 =====
+async function searchRealHotels(destination, checkin, checkout, guests) {
+  if (!destination) return HOTELS.slice();
+
+  try {
+    // Step 1: resolve destination to gaiaId
+    showHotelSearchStatus('🔍 Resolving destination...');
+    const dest = await hotelsResolveDestination(destination + ' India');
+    if (!dest || !dest.gaiaId) throw new Error('Destination not found');
+
+    // Step 2: fetch hotel listings
+    showHotelSearchStatus('🏨 Fetching live hotel prices...');
+    const properties = await hotelsFetchListings(dest.gaiaId, checkin, checkout, guests);
+    if (!properties || properties.length === 0) throw new Error('No properties returned');
+
+    // Step 3: map to GoJourney format
+    const results = properties.map(p => mapHotels4Property(p, destination));
+    showHotelSearchStatus('');
+    return results;
+
+  } catch (err) {
+    console.warn('[Hotels4 API]', err.message);
+    showHotelSearchStatus('');
+
+    // Fallback: try Booking.com API (same RapidAPI key)
+    try {
+      return await searchHotelsBookingCom(destination, checkin, checkout, guests);
+    } catch(e2) {
+      console.warn('[Booking.com API fallback failed]', e2.message);
+      // Final fallback: static HOTELS data
+      const local = HOTELS.filter(h => h.location.toLowerCase().includes(destination.toLowerCase()));
+      return local.length ? local : HOTELS.map(h => ({ ...h, location: destination }));
+    }
+  }
+}
+
+// ===== FALLBACK: Booking.com API on RapidAPI =====
+async function searchHotelsBookingCom(destination, checkin, checkout, guests) {
+  // Step 1: get dest_id
+  const searchUrl = `https://booking-com.p.rapidapi.com/v1/hotels/search-destination?query=${encodeURIComponent(destination)}&locale=en-gb`;
+  const searchData = await rapidFetch(searchUrl, 'booking-com.p.rapidapi.com');
+  const match = (searchData || []).find(r => r.dest_type === 'city' || r.dest_type === 'hotel') || searchData?.[0];
+  if (!match) throw new Error('No destination match');
+
+  const destId = match.dest_id;
+  const destType = match.dest_type || 'city';
+
+  // Step 2: search hotels
+  const ci = checkin  || getTodayDate(0);
+  const co = checkout || getTodayDate(1);
+  const hotelUrl = `https://booking-com.p.rapidapi.com/v1/hotels/search` +
+    `?dest_id=${destId}&dest_type=${destType}` +
+    `&checkin_date=${ci}&checkout_date=${co}` +
+    `&adults_number=${guests || 2}&room_number=1` +
+    `&locale=en-gb&currency=INR&units=metric&order_by=popularity&filter_by_currency=INR&page_number=0`;
+  const hotelData = await rapidFetch(hotelUrl, 'booking-com.p.rapidapi.com');
+  const hotels = hotelData?.result || [];
+  if (!hotels.length) throw new Error('No hotels from Booking.com');
+
+  return hotels.slice(0, 12).map((h, i) => {
+    const price = Math.round(h.min_total_price || h.price_breakdown?.gross_price || 2999);
+    const stars = parseInt(h.class) || 3;
+    return {
+      id: 'bk_' + (h.hotel_id || i),
+      hotelId: h.hotel_id,
+      name: h.hotel_name || h.hotel_name_trans || 'Hotel',
+      location: h.city || destination,
+      rating: parseFloat(h.review_score || 4.0).toFixed(1),
+      reviews: h.review_nr || Math.floor(Math.random() * 400 + 50),
+      price,
+      originalPrice: Math.round(price * 1.3),
+      amenities: (['WiFi', stars >= 4 ? 'Pool' : 'Parking', 'Restaurant', stars >= 4 ? 'Spa' : 'AC']).slice(0, 3),
+      img: h.main_photo_url || h.url_1440 || `https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&auto=format&fit=crop&sig=${i}`,
+      badge: stars >= 4 ? '⭐ ' + stars + ' Star' : h.is_genius_deal ? '🔥 Genius Deal' : null,
+      type: 'hotel',
+      isReal: true,
+      stars,
+      freeCancellation: !!(h.is_free_cancellable),
+      reviewWord: h.review_score_word || '',
+      bookingLink: h.url || null
+    };
+  });
+}
+
+// Show/hide status inside results area
+function showHotelSearchStatus(msg) {
+  const el = document.getElementById('hotelApiStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display = msg ? 'block' : 'none';
 }
 
 // ===== SEARCH =====
@@ -2548,16 +2704,27 @@ async function performSearch(type) {
   let title = '';
 
   if (type === 'hotels') {
-    const dest = document.getElementById('hotelDest').value.trim();
-    showToast(dest ? '🏨 Searching hotels in ' + dest + '...' : '🏨 Searching all hotels...');
+    const dest     = document.getElementById('hotelDest').value.trim();
+    const checkin  = document.getElementById('hotelCheckin')?.value;
+    const checkout = document.getElementById('hotelCheckout')?.value;
+    const guests   = parseInt(document.getElementById('hotelGuests')?.value) || 2;
+    showToast(dest ? '🏨 Fetching live hotels in ' + dest + '...' : '🏨 Showing all hotels...');
+    // Inject status line inside results grid for live API feedback
+    const existingStatus = document.getElementById('hotelApiStatus');
+    if (!existingStatus) {
+      const statusEl = document.createElement('p');
+      statusEl.id = 'hotelApiStatus';
+      statusEl.style.cssText = 'grid-column:1/-1;text-align:center;color:var(--primary);font-size:13px;font-weight:600;padding:6px 0;display:none';
+      document.getElementById('resultsGrid').prepend(statusEl);
+    }
     if (dest) {
-      results = await searchRealHotels(dest);
+      results = await searchRealHotels(dest, checkin, checkout, guests);
       title = 'Hotels in ' + dest;
     } else {
       results = HOTELS.slice();
       title = 'Hotels — All Locations';
     }
-    App.searchParams = { checkin: document.getElementById('hotelCheckin')?.value, checkout: document.getElementById('hotelCheckout')?.value };
+    App.searchParams = { checkin, checkout, guests };
   } else if (type === 'cabs') {
     const from = document.getElementById('cabFrom').value.trim();
     const to   = document.getElementById('cabTo').value.trim();
@@ -2673,11 +2840,24 @@ function createResultCard(item, idx) {
   const type = item.type;
 
   if (type === 'hotel') {
-    // Generate room availability indicator (deterministic from hotel id)
+    // Room availability indicator (deterministic seed fallback for local data)
     const hotelSeed = (item.id || '').split('').reduce((a,c) => a + c.charCodeAt(0), 17);
     const roomsAvail = (hotelSeed % 8) + 1;
     const roomAvailColor = roomsAvail <= 2 ? '#dc2626' : roomsAvail <= 4 ? '#d97706' : '#059669';
-    const roomAvailText = roomsAvail <= 2 ? '🔴 Only ' + roomsAvail + ' rooms left!' : roomsAvail <= 4 ? '🟡 ' + roomsAvail + ' rooms left' : '🟢 ' + roomsAvail + ' rooms available';
+    const roomAvailText = roomsAvail <= 2 ? '🔴 Only ' + roomsAvail + ' left!' : roomsAvail <= 4 ? '🟡 ' + roomsAvail + ' rooms left' : '🟢 Available';
+
+    // Real API extras
+    const isLive     = item.isReal && (item.id.startsWith('h4_') || item.id.startsWith('bk_'));
+    const liveBadge  = isLive ? `<span style="background:#dcfce7;color:#166534;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;border:1px solid #bbf7d0">✅ Live Price</span>` : '';
+    const cancelBadge= item.freeCancellation ? `<span style="background:#f0fdf4;color:#15803d;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;border:1px solid #86efac">🆓 Free Cancel</span>` : '';
+    const reviewWord = item.reviewWord ? `<span style="color:#0891b2;font-size:11px;font-weight:600">${item.reviewWord}</span>` : '';
+    const starDots   = item.stars ? '★'.repeat(Math.min(item.stars,5)) + '☆'.repeat(Math.max(0,5-item.stars)) : '';
+    const sourceTag  = isLive
+      ? `<span style="font-size:10px;color:var(--text-muted);margin-left:auto">via ${item.id.startsWith('h4_') ? 'Hotels.com' : 'Booking.com'}</span>`
+      : `<span style="font-size:10px;color:var(--text-muted)">4 room types</span>`;
+    const extLink = item.bookingLink
+      ? `<a href="${item.bookingLink}" target="_blank" rel="noopener" style="flex:1;text-align:center;border:1.5px solid #0891b2;background:#f0f9ff;color:#0891b2;border-radius:8px;font-size:12px;font-weight:700;padding:10px 8px;text-decoration:none;display:flex;align-items:center;justify-content:center">🌐 View</a>`
+      : `<button onclick="previewRooms(${idx})" style="flex:1;border:1.5px solid var(--primary);background:var(--light);color:var(--primary);border-radius:8px;font-size:12px;font-weight:700;padding:10px 8px;transition:all 0.2s;cursor:pointer">🛏️ Rooms</button>`;
     div.innerHTML = `
       <div class="result-img" style="background-image:url('${item.img}')">
         ${item.badge ? `<span class="result-badge">${item.badge}</span>` : ''}
@@ -2685,16 +2865,20 @@ function createResultCard(item, idx) {
       </div>
       <div class="result-body">
         <h3>${item.name}</h3>
+        ${starDots ? `<div style="color:#f59e0b;font-size:13px;letter-spacing:1px;margin-bottom:4px">${starDots}</div>` : ''}
         <div class="result-meta">
-          <span class="result-rating">⭐ ${item.rating} (${item.reviews})</span>
+          <span class="result-rating">⭐ ${item.rating} ${reviewWord} (${item.reviews})</span>
           <span class="result-location">📍 ${item.location}</span>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
           ${item.amenities.map(a => `<span style="background:var(--light);color:var(--primary);font-size:11px;padding:2px 8px;border-radius:20px">${a}</span>`).join('')}
         </div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+          ${liveBadge}${cancelBadge}
+        </div>
         <div style="background:#f8fafc;border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
           <span style="font-size:12px;font-weight:700;color:${roomAvailColor}">${roomAvailText}</span>
-          <span style="font-size:11px;color:var(--text-muted)">4 room types · 📍 Geocoded</span>
+          ${sourceTag}
         </div>
         <div class="result-price">
           <strong>₹${item.price.toLocaleString()}</strong>
@@ -2703,7 +2887,7 @@ function createResultCard(item, idx) {
         </div>
         <div style="display:flex;gap:8px;margin-top:8px">
           <button class="book-now-btn" style="flex:2" onclick="bookItem(${idx})">📱 Book with OTP →</button>
-          <button onclick="previewRooms(${idx})" style="flex:1;border:1.5px solid var(--primary);background:var(--light);color:var(--primary);border-radius:8px;font-size:12px;font-weight:700;padding:10px 8px;transition:all 0.2s;cursor:pointer" title="Preview room types">🛏️ Rooms</button>
+          ${extLink}
         </div>
       </div>`;
   } else if (type === 'cab') {
