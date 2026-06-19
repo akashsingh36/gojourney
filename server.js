@@ -239,6 +239,50 @@ const adminMiddleware = (req, res, next) => {
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
 
 // ───────────────────────────────────────────────────────
+//  ✅ GOOGLE PLACES AUTOCOMPLETE PROXY
+//  GET /api/places/autocomplete?q=gautam
+//  Keeps API key server-side — never exposed to browser
+// ───────────────────────────────────────────────────────
+app.get('/api/places/autocomplete', async (req, res) => {
+  const { q } = req.query;
+  if (!q || q.length < 2) return res.json({ predictions: [] });
+
+  if (!GOOGLE_MAPS_KEY) {
+    return res.json({ predictions: [], error: 'GOOGLE_MAPS_KEY not set' });
+  }
+
+  try {
+    const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json`
+      + `?input=${encodeURIComponent(q)}`
+      + `&components=country:in`
+      + `&language=en`
+      + `&types=(cities)`
+      + `&key=${GOOGLE_MAPS_KEY}`;
+
+    const resp = await httpGet(url);
+    const data = resp.body;
+
+    if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
+      console.error('Places API error:', data.status, data.error_message);
+    }
+
+    // Map to clean format for frontend
+    const predictions = (data.predictions || []).map(p => ({
+      name:        p.structured_formatting?.main_text || p.description.split(',')[0],
+      description: p.description,
+      state:       p.structured_formatting?.secondary_text || '',
+      place_id:    p.place_id,
+      types:       p.types || [],
+    }));
+
+    res.json({ predictions, status: data.status });
+  } catch(err) {
+    console.error('Places autocomplete error:', err.message);
+    res.status(500).json({ predictions: [], error: err.message });
+  }
+});
+
+// ───────────────────────────────────────────────────────
 //  HOTELS (RapidAPI proxy — unchanged)
 // ───────────────────────────────────────────────────────
 app.get('/api/hotels/location', async (req, res) => {

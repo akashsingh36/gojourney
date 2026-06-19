@@ -4339,301 +4339,177 @@ async function updateCabPricePreview() {
 
 
 // ===== LOCATION AUTOCOMPLETE ENGINE =====
+// Uses Google Places Autocomplete API (via backend proxy) for real suggestions
+// Falls back to local India places DB if API is unavailable
+
 const acCache = {};
 let acActiveIndex = -1;
 
-// ===== INDIA CITIES & PLACES DATABASE =====
-// Comprehensive list: cities, airports, railway stations, tourist spots
-const INDIA_PLACES = [
-  // Uttar Pradesh
-  { name: 'Agra', state: 'Uttar Pradesh', type: 'city', alt: ['agra fort','taj mahal city'] },
-  { name: 'Aligarh', state: 'Uttar Pradesh', type: 'city' },
-  { name: 'Allahabad', state: 'Uttar Pradesh', type: 'city', alt: ['prayagraj','sangam'] },
-  { name: 'Prayagraj', state: 'Uttar Pradesh', type: 'city', alt: ['allahabad','triveni sangam'] },
-  { name: 'Ayodhya', state: 'Uttar Pradesh', type: 'city' },
-  { name: 'Azamgarh', state: 'Uttar Pradesh', type: 'city' },
-  { name: 'Bareilly', state: 'Uttar Pradesh', type: 'city' },
-  { name: 'Etawah', state: 'Uttar Pradesh', type: 'city' },
-  { name: 'Faizabad', state: 'Uttar Pradesh', type: 'city' },
-  { name: 'Firozabad', state: 'Uttar Pradesh', type: 'city' },
-  { name: 'Ghaziabad', state: 'Uttar Pradesh', type: 'city' },
-  { name: 'Gorakhpur', state: 'Uttar Pradesh', type: 'city' },
-  { name: 'Jhansi', state: 'Uttar Pradesh', type: 'city' },
-  { name: 'Kanpur', state: 'Uttar Pradesh', type: 'city' },
-  { name: 'Lucknow', state: 'Uttar Pradesh', type: 'city' },
-  { name: 'Mathura', state: 'Uttar Pradesh', type: 'city' },
-  { name: 'Meerut', state: 'Uttar Pradesh', type: 'city' },
-  { name: 'Moradabad', state: 'Uttar Pradesh', type: 'city' },
-  { name: 'Muzaffarnagar', state: 'Uttar Pradesh', type: 'city' },
-  { name: 'Noida', state: 'Uttar Pradesh', type: 'city' },
-  { name: 'Rae Bareli', state: 'Uttar Pradesh', type: 'city' },
-  { name: 'Saharanpur', state: 'Uttar Pradesh', type: 'city' },
-  { name: 'Varanasi', state: 'Uttar Pradesh', type: 'city', alt: ['banaras','kashi','benares'] },
-  { name: 'Vrindavan', state: 'Uttar Pradesh', type: 'city' },
-  // Maharashtra
-  { name: 'Ahmednagar', state: 'Maharashtra', type: 'city' },
-  { name: 'Akola', state: 'Maharashtra', type: 'city' },
-  { name: 'Amravati', state: 'Maharashtra', type: 'city' },
-  { name: 'Aurangabad', state: 'Maharashtra', type: 'city' },
-  { name: 'Chandrapur', state: 'Maharashtra', type: 'city' },
-  { name: 'Dhule', state: 'Maharashtra', type: 'city' },
-  { name: 'Jalgaon', state: 'Maharashtra', type: 'city' },
-  { name: 'Kolhapur', state: 'Maharashtra', type: 'city' },
-  { name: 'Lonavala', state: 'Maharashtra', type: 'city' },
-  { name: 'Mumbai', state: 'Maharashtra', type: 'city', alt: ['bombay','bom'] },
-  { name: 'Nagpur', state: 'Maharashtra', type: 'city' },
-  { name: 'Nanded', state: 'Maharashtra', type: 'city' },
-  { name: 'Nashik', state: 'Maharashtra', type: 'city' },
-  { name: 'Pune', state: 'Maharashtra', type: 'city' },
-  { name: 'Shirdi', state: 'Maharashtra', type: 'city' },
-  { name: 'Solapur', state: 'Maharashtra', type: 'city' },
-  { name: 'Thane', state: 'Maharashtra', type: 'city' },
-  // Rajasthan
-  { name: 'Ajmer', state: 'Rajasthan', type: 'city' },
-  { name: 'Alwar', state: 'Rajasthan', type: 'city' },
-  { name: 'Bharatpur', state: 'Rajasthan', type: 'city' },
-  { name: 'Bikaner', state: 'Rajasthan', type: 'city' },
-  { name: 'Jaipur', state: 'Rajasthan', type: 'city', alt: ['pink city'] },
-  { name: 'Jaisalmer', state: 'Rajasthan', type: 'city', alt: ['golden city','desert'] },
-  { name: 'Jodhpur', state: 'Rajasthan', type: 'city', alt: ['blue city','sun city'] },
-  { name: 'Kota', state: 'Rajasthan', type: 'city' },
-  { name: 'Mount Abu', state: 'Rajasthan', type: 'city' },
-  { name: 'Pushkar', state: 'Rajasthan', type: 'city' },
-  { name: 'Udaipur', state: 'Rajasthan', type: 'city', alt: ['lake city','venice of east'] },
-  // Delhi & NCR
-  { name: 'Delhi', state: 'Delhi NCR', type: 'city', alt: ['new delhi','ndls'] },
-  { name: 'New Delhi', state: 'Delhi NCR', type: 'city' },
-  { name: 'Faridabad', state: 'Haryana', type: 'city' },
-  { name: 'Gurugram', state: 'Haryana', type: 'city', alt: ['gurgaon'] },
-  { name: 'Gurgaon', state: 'Haryana', type: 'city', alt: ['gurugram'] },
-  // Gujarat
-  { name: 'Ahmedabad', state: 'Gujarat', type: 'city' },
-  { name: 'Anand', state: 'Gujarat', type: 'city' },
-  { name: 'Bhavnagar', state: 'Gujarat', type: 'city' },
-  { name: 'Gandhinagar', state: 'Gujarat', type: 'city' },
-  { name: 'Junagadh', state: 'Gujarat', type: 'city' },
-  { name: 'Rajkot', state: 'Gujarat', type: 'city' },
-  { name: 'Surat', state: 'Gujarat', type: 'city' },
-  { name: 'Vadodara', state: 'Gujarat', type: 'city', alt: ['baroda'] },
-  // Karnataka
-  { name: 'Bangalore', state: 'Karnataka', type: 'city', alt: ['bengaluru','blr'] },
-  { name: 'Bengaluru', state: 'Karnataka', type: 'city', alt: ['bangalore'] },
-  { name: 'Hampi', state: 'Karnataka', type: 'city' },
-  { name: 'Hubli', state: 'Karnataka', type: 'city' },
-  { name: 'Mangalore', state: 'Karnataka', type: 'city', alt: ['mangaluru'] },
-  { name: 'Mysore', state: 'Karnataka', type: 'city', alt: ['mysuru'] },
-  { name: 'Udupi', state: 'Karnataka', type: 'city' },
-  // Tamil Nadu
-  { name: 'Chennai', state: 'Tamil Nadu', type: 'city', alt: ['madras'] },
-  { name: 'Coimbatore', state: 'Tamil Nadu', type: 'city' },
-  { name: 'Madurai', state: 'Tamil Nadu', type: 'city' },
-  { name: 'Ooty', state: 'Tamil Nadu', type: 'city', alt: ['udhagamandalam'] },
-  { name: 'Salem', state: 'Tamil Nadu', type: 'city' },
-  { name: 'Tiruchirappalli', state: 'Tamil Nadu', type: 'city', alt: ['trichy'] },
-  { name: 'Tirunelveli', state: 'Tamil Nadu', type: 'city' },
-  { name: 'Vellore', state: 'Tamil Nadu', type: 'city' },
-  // Kerala
-  { name: 'Alleppey', state: 'Kerala', type: 'city', alt: ['alappuzha','backwaters'] },
-  { name: 'Alappuzha', state: 'Kerala', type: 'city', alt: ['alleppey'] },
-  { name: 'Kochi', state: 'Kerala', type: 'city', alt: ['cochin'] },
-  { name: 'Kozhikode', state: 'Kerala', type: 'city', alt: ['calicut'] },
-  { name: 'Munnar', state: 'Kerala', type: 'city' },
-  { name: 'Thekkady', state: 'Kerala', type: 'city' },
-  { name: 'Thiruvananthapuram', state: 'Kerala', type: 'city', alt: ['trivandrum'] },
-  { name: 'Thrissur', state: 'Kerala', type: 'city' },
-  { name: 'Varkala', state: 'Kerala', type: 'city' },
-  { name: 'Wayanad', state: 'Kerala', type: 'city' },
-  // Himachal Pradesh
-  { name: 'Dalhousie', state: 'Himachal Pradesh', type: 'city' },
-  { name: 'Dharamsala', state: 'Himachal Pradesh', type: 'city', alt: ['dharmshala','mcleod ganj'] },
-  { name: 'Kasauli', state: 'Himachal Pradesh', type: 'city' },
-  { name: 'Kullu', state: 'Himachal Pradesh', type: 'city', alt: ['kulu manali'] },
-  { name: 'Manali', state: 'Himachal Pradesh', type: 'city' },
-  { name: 'Shimla', state: 'Himachal Pradesh', type: 'city', alt: ['simla'] },
-  { name: 'Spiti Valley', state: 'Himachal Pradesh', type: 'city' },
-  // Uttarakhand
-  { name: 'Dehradun', state: 'Uttarakhand', type: 'city' },
-  { name: 'Haridwar', state: 'Uttarakhand', type: 'city' },
-  { name: 'Kedarnath', state: 'Uttarakhand', type: 'city' },
-  { name: 'Mussoorie', state: 'Uttarakhand', type: 'city' },
-  { name: 'Nainital', state: 'Uttarakhand', type: 'city' },
-  { name: 'Rishikesh', state: 'Uttarakhand', type: 'city' },
-  { name: 'Roorkee', state: 'Uttarakhand', type: 'city' },
-  // West Bengal
-  { name: 'Darjeeling', state: 'West Bengal', type: 'city' },
-  { name: 'Durgapur', state: 'West Bengal', type: 'city' },
-  { name: 'Howrah', state: 'West Bengal', type: 'city' },
-  { name: 'Kolkata', state: 'West Bengal', type: 'city', alt: ['calcutta'] },
-  { name: 'Siliguri', state: 'West Bengal', type: 'city' },
-  // Punjab & Haryana
-  { name: 'Amritsar', state: 'Punjab', type: 'city', alt: ['golden temple city'] },
-  { name: 'Ambala', state: 'Haryana', type: 'city' },
-  { name: 'Chandigarh', state: 'Punjab/Haryana', type: 'city' },
-  { name: 'Jalandhar', state: 'Punjab', type: 'city' },
-  { name: 'Ludhiana', state: 'Punjab', type: 'city' },
-  { name: 'Patiala', state: 'Punjab', type: 'city' },
-  // Bihar & Jharkhand
-  { name: 'Bodh Gaya', state: 'Bihar', type: 'city' },
-  { name: 'Gaya', state: 'Bihar', type: 'city' },
-  { name: 'Muzaffarpur', state: 'Bihar', type: 'city' },
-  { name: 'Patna', state: 'Bihar', type: 'city' },
-  { name: 'Ranchi', state: 'Jharkhand', type: 'city' },
-  { name: 'Jamshedpur', state: 'Jharkhand', type: 'city' },
-  // Odisha
-  { name: 'Bhubaneswar', state: 'Odisha', type: 'city' },
-  { name: 'Cuttack', state: 'Odisha', type: 'city' },
-  { name: 'Puri', state: 'Odisha', type: 'city', alt: ['jagannath puri'] },
-  // Goa
-  { name: 'Goa', state: 'Goa', type: 'city', alt: ['panaji','margao','calangute','baga'] },
-  { name: 'Panaji', state: 'Goa', type: 'city', alt: ['panjim'] },
-  { name: 'Margao', state: 'Goa', type: 'city' },
-  // Andhra Pradesh & Telangana
-  { name: 'Hyderabad', state: 'Telangana', type: 'city', alt: ['cyberabad','hyd'] },
-  { name: 'Tirupati', state: 'Andhra Pradesh', type: 'city' },
-  { name: 'Visakhapatnam', state: 'Andhra Pradesh', type: 'city', alt: ['vizag'] },
-  { name: 'Vijayawada', state: 'Andhra Pradesh', type: 'city' },
-  { name: 'Warangal', state: 'Telangana', type: 'city' },
-  // Madhya Pradesh & Chhattisgarh
-  { name: 'Bhopal', state: 'Madhya Pradesh', type: 'city' },
-  { name: 'Gwalior', state: 'Madhya Pradesh', type: 'city' },
-  { name: 'Indore', state: 'Madhya Pradesh', type: 'city' },
-  { name: 'Jabalpur', state: 'Madhya Pradesh', type: 'city' },
-  { name: 'Khajuraho', state: 'Madhya Pradesh', type: 'city' },
-  { name: 'Pachmarhi', state: 'Madhya Pradesh', type: 'city' },
-  { name: 'Ujjain', state: 'Madhya Pradesh', type: 'city' },
-  { name: 'Raipur', state: 'Chhattisgarh', type: 'city' },
-  // Assam & North-East
-  { name: 'Guwahati', state: 'Assam', type: 'city' },
-  { name: 'Dibrugarh', state: 'Assam', type: 'city' },
-  { name: 'Imphal', state: 'Manipur', type: 'city' },
-  { name: 'Shillong', state: 'Meghalaya', type: 'city' },
-  { name: 'Gangtok', state: 'Sikkim', type: 'city' },
-  { name: 'Aizawl', state: 'Mizoram', type: 'city' },
-  // J&K & Ladakh
-  { name: 'Jammu', state: 'Jammu & Kashmir', type: 'city' },
-  { name: 'Srinagar', state: 'Jammu & Kashmir', type: 'city' },
-  { name: 'Leh', state: 'Ladakh', type: 'city' },
-  { name: 'Kargil', state: 'Ladakh', type: 'city' },
+// ── Local India Places DB (instant fallback, no API needed) ──
+const INDIA_PLACES_LOCAL = [
+  // Major cities — covers most common searches instantly
+  { name:'Agra', state:'Uttar Pradesh', type:'city' },
+  { name:'Ahmedabad', state:'Gujarat', type:'city' },
+  { name:'Ajmer', state:'Rajasthan', type:'city' },
+  { name:'Aligarh', state:'Uttar Pradesh', type:'city' },
+  { name:'Allahabad', state:'Uttar Pradesh', type:'city', alt:['prayagraj'] },
+  { name:'Amritsar', state:'Punjab', type:'city' },
+  { name:'Aurangabad', state:'Maharashtra', type:'city' },
+  { name:'Ayodhya', state:'Uttar Pradesh', type:'city' },
+  { name:'Azamgarh', state:'Uttar Pradesh', type:'city' },
+  { name:'Bangalore', state:'Karnataka', type:'city', alt:['bengaluru'] },
+  { name:'Bengaluru', state:'Karnataka', type:'city' },
+  { name:'Bhopal', state:'Madhya Pradesh', type:'city' },
+  { name:'Bhubaneswar', state:'Odisha', type:'city' },
+  { name:'Chandigarh', state:'Punjab', type:'city' },
+  { name:'Chennai', state:'Tamil Nadu', type:'city', alt:['madras'] },
+  { name:'Coimbatore', state:'Tamil Nadu', type:'city' },
+  { name:'Darjeeling', state:'West Bengal', type:'city' },
+  { name:'Dehradun', state:'Uttarakhand', type:'city' },
+  { name:'Delhi', state:'Delhi', type:'city', alt:['new delhi','dilli'] },
+  { name:'New Delhi', state:'Delhi', type:'city' },
+  { name:'Dhanbad', state:'Jharkhand', type:'city' },
+  { name:'Faridabad', state:'Haryana', type:'city' },
+  { name:'Ghaziabad', state:'Uttar Pradesh', type:'city' },
+  { name:'Goa', state:'Goa', type:'city' },
+  { name:'Panaji', state:'Goa', type:'city' },
+  { name:'Gorakhpur', state:'Uttar Pradesh', type:'city' },
+  { name:'Greater Noida', state:'Uttar Pradesh', type:'city' },
+  { name:'Gurgaon', state:'Haryana', type:'city', alt:['gurugram'] },
+  { name:'Gurugram', state:'Haryana', type:'city' },
+  { name:'Guwahati', state:'Assam', type:'city' },
+  { name:'Gwalior', state:'Madhya Pradesh', type:'city' },
+  { name:'Haridwar', state:'Uttarakhand', type:'city' },
+  { name:'Hyderabad', state:'Telangana', type:'city' },
+  { name:'Indore', state:'Madhya Pradesh', type:'city' },
+  { name:'Jaipur', state:'Rajasthan', type:'city' },
+  { name:'Jaisalmer', state:'Rajasthan', type:'city' },
+  { name:'Jalandhar', state:'Punjab', type:'city' },
+  { name:'Jammu', state:'J&K', type:'city' },
+  { name:'Jodhpur', state:'Rajasthan', type:'city' },
+  { name:'Kanpur', state:'Uttar Pradesh', type:'city' },
+  { name:'Kochi', state:'Kerala', type:'city', alt:['cochin'] },
+  { name:'Kolkata', state:'West Bengal', type:'city', alt:['calcutta'] },
+  { name:'Kota', state:'Rajasthan', type:'city' },
+  { name:'Kozhikode', state:'Kerala', type:'city', alt:['calicut'] },
+  { name:'Leh', state:'Ladakh', type:'city' },
+  { name:'Lonavala', state:'Maharashtra', type:'city' },
+  { name:'Lucknow', state:'Uttar Pradesh', type:'city' },
+  { name:'Ludhiana', state:'Punjab', type:'city' },
+  { name:'Madurai', state:'Tamil Nadu', type:'city' },
+  { name:'Manali', state:'Himachal Pradesh', type:'city' },
+  { name:'Mangalore', state:'Karnataka', type:'city' },
+  { name:'Mathura', state:'Uttar Pradesh', type:'city' },
+  { name:'Meerut', state:'Uttar Pradesh', type:'city' },
+  { name:'Mumbai', state:'Maharashtra', type:'city', alt:['bombay'] },
+  { name:'Mussoorie', state:'Uttarakhand', type:'city' },
+  { name:'Mysore', state:'Karnataka', type:'city', alt:['mysuru'] },
+  { name:'Nagpur', state:'Maharashtra', type:'city' },
+  { name:'Nashik', state:'Maharashtra', type:'city' },
+  { name:'Navi Mumbai', state:'Maharashtra', type:'city' },
+  { name:'Noida', state:'Uttar Pradesh', type:'city' },
+  { name:'Ooty', state:'Tamil Nadu', type:'city', alt:['udhagamandalam'] },
+  { name:'Patna', state:'Bihar', type:'city' },
+  { name:'Port Blair', state:'Andaman', type:'city' },
+  { name:'Prayagraj', state:'Uttar Pradesh', type:'city', alt:['allahabad'] },
+  { name:'Pune', state:'Maharashtra', type:'city' },
+  { name:'Raipur', state:'Chhattisgarh', type:'city' },
+  { name:'Rajkot', state:'Gujarat', type:'city' },
+  { name:'Ranchi', state:'Jharkhand', type:'city' },
+  { name:'Rishikesh', state:'Uttarakhand', type:'city' },
+  { name:'Shimla', state:'Himachal Pradesh', type:'city' },
+  { name:'Siliguri', state:'West Bengal', type:'city' },
+  { name:'Srinagar', state:'J&K', type:'city' },
+  { name:'Surat', state:'Gujarat', type:'city' },
+  { name:'Thane', state:'Maharashtra', type:'city' },
+  { name:'Thiruvananthapuram', state:'Kerala', type:'city', alt:['trivandrum'] },
+  { name:'Tiruchirappalli', state:'Tamil Nadu', type:'city', alt:['trichy'] },
+  { name:'Tirupati', state:'Andhra Pradesh', type:'city' },
+  { name:'Udaipur', state:'Rajasthan', type:'city' },
+  { name:'Varanasi', state:'Uttar Pradesh', type:'city', alt:['banaras','kashi'] },
+  { name:'Vijayawada', state:'Andhra Pradesh', type:'city' },
+  { name:'Visakhapatnam', state:'Andhra Pradesh', type:'city', alt:['vizag'] },
+  { name:'Vrindavan', state:'Uttar Pradesh', type:'city' },
   // Airports
-  { name: 'Indira Gandhi International Airport', state: 'Delhi', type: 'airport', alt: ['igi','igi airport','del airport','delhi airport'] },
-  { name: 'Chhatrapati Shivaji Maharaj Airport', state: 'Mumbai', type: 'airport', alt: ['bom airport','mumbai airport'] },
-  { name: 'Kempegowda International Airport', state: 'Bangalore', type: 'airport', alt: ['blr airport','bangalore airport'] },
-  { name: 'Chennai International Airport', state: 'Tamil Nadu', type: 'airport', alt: ['maa airport'] },
-  { name: 'Rajiv Gandhi International Airport', state: 'Hyderabad', type: 'airport', alt: ['hyd airport'] },
-  { name: 'Prayagraj Airport', state: 'Uttar Pradesh', type: 'airport', alt: ['ixd','allahabad airport'] },
-  { name: 'Chaudhary Charan Singh Airport', state: 'Lucknow', type: 'airport', alt: ['lko airport','lucknow airport'] },
-  { name: 'Lal Bahadur Shastri Airport', state: 'Varanasi', type: 'airport', alt: ['vns airport','varanasi airport'] },
-  { name: 'Agra Airport', state: 'Uttar Pradesh', type: 'airport' },
-  { name: 'Jaipur International Airport', state: 'Rajasthan', type: 'airport', alt: ['jai airport'] },
-  // Railway stations
-  { name: 'New Delhi Railway Station', state: 'Delhi', type: 'station', alt: ['ndls','new delhi station'] },
-  { name: 'Old Delhi Railway Station', state: 'Delhi', type: 'station', alt: ['di','delhi junction'] },
-  { name: 'Hazrat Nizamuddin Station', state: 'Delhi', type: 'station', alt: ['nzm'] },
-  { name: 'Mumbai CST', state: 'Maharashtra', type: 'station', alt: ['chhatrapati shivaji terminus','vt station'] },
-  { name: 'Mumbai Central', state: 'Maharashtra', type: 'station' },
-  { name: 'Howrah Junction', state: 'West Bengal', type: 'station', alt: ['howrah station'] },
-  { name: 'Varanasi Junction', state: 'Uttar Pradesh', type: 'station', alt: ['bsb','banaras station'] },
-  { name: 'Prayagraj Junction', state: 'Uttar Pradesh', type: 'station', alt: ['ald','allahabad junction'] },
-  { name: 'Lucknow Junction', state: 'Uttar Pradesh', type: 'station', alt: ['lkn'] },
-  { name: 'Agra Cantonment', state: 'Uttar Pradesh', type: 'station', alt: ['agi','agra station'] },
-  { name: 'Kanpur Central', state: 'Uttar Pradesh', type: 'station', alt: ['cnb'] },
-  { name: 'Jaipur Railway Station', state: 'Rajasthan', type: 'station', alt: ['jp station'] },
-  { name: 'Pune Junction', state: 'Maharashtra', type: 'station' },
-  { name: 'Bangalore City Junction', state: 'Karnataka', type: 'station', alt: ['sbc station'] },
-  { name: 'Chennai Central', state: 'Tamil Nadu', type: 'station', alt: ['mas station'] },
+  { name:'IGI Airport Delhi', state:'Delhi', type:'airport', alt:['indira gandhi'] },
+  { name:'CSIA Mumbai Airport', state:'Maharashtra', type:'airport' },
+  { name:'KIAL Bangalore Airport', state:'Karnataka', type:'airport', alt:['kempegowda'] },
+  { name:'Chennai Airport', state:'Tamil Nadu', type:'airport' },
+  { name:'RGIA Hyderabad Airport', state:'Telangana', type:'airport', alt:['rajiv gandhi'] },
+  { name:'Babatpur Airport Varanasi', state:'Uttar Pradesh', type:'airport' },
+  { name:'Dabolim Airport Goa', state:'Goa', type:'airport' },
 ];
 
-// Search local DB — returns all matching places, prioritised by match quality
 function searchLocalPlaces(query) {
   const q = query.toLowerCase().trim();
   if (q.length < 1) return [];
-
-  const tier1 = []; // name starts-with query
-  const tier2 = []; // any word in name starts-with query, or alt starts-with
-  const tier3 = []; // name/alt contains query anywhere (min 2 chars)
-  const seen  = new Set();
-
-  for (const place of INDIA_PLACES) {
-    const nameLower = place.name.toLowerCase();
-    const alts = place.alt || [];
-    if (seen.has(place.name)) continue;
-
-    const nameStartsWith = nameLower.startsWith(q);
-    const wordStartsWith = !nameStartsWith && nameLower.split(' ').some(w => w.startsWith(q));
-    const altStartsWith  = !nameStartsWith && !wordStartsWith && alts.some(a => a.toLowerCase().startsWith(q));
-    const nameContains   = !nameStartsWith && !wordStartsWith && !altStartsWith && nameLower.includes(q);
-    const altContains    = !nameStartsWith && !wordStartsWith && !altStartsWith && !nameContains && alts.some(a => a.toLowerCase().includes(q));
-
-    if (nameStartsWith) {
-      seen.add(place.name); tier1.push(place);
-    } else if (wordStartsWith || altStartsWith) {
-      seen.add(place.name); tier2.push(place);
-    } else if ((nameContains || altContains) && q.length >= 2) {
-      seen.add(place.name); tier3.push(place);
-    }
+  const tier1 = [], tier2 = [], tier3 = [];
+  const seen = new Set();
+  for (const p of INDIA_PLACES_LOCAL) {
+    const n = p.name.toLowerCase();
+    const alts = p.alt || [];
+    if (seen.has(p.name)) continue;
+    const t1 = n.startsWith(q);
+    const t2 = !t1 && (n.split(' ').some(w => w.startsWith(q)) || alts.some(a => a.toLowerCase().startsWith(q)));
+    const t3 = !t1 && !t2 && q.length >= 2 && (n.includes(q) || alts.some(a => a.toLowerCase().includes(q)));
+    if (t1)      { seen.add(p.name); tier1.push(p); }
+    else if (t2) { seen.add(p.name); tier2.push(p); }
+    else if (t3) { seen.add(p.name); tier3.push(p); }
   }
-
-  // All tiers merged; caller decides display limit
   return [...tier1, ...tier2, ...tier3];
+}
+
+// ── Google Places via backend proxy ──
+async function fetchGooglePlaces(query) {
+  try {
+    const res = await fetch(`https://gojourney-production.up.railway.app/api/places/autocomplete?q=${encodeURIComponent(query)}`);
+    const data = await res.json();
+    return (data.predictions || []).map(p => ({
+      name:    p.name,
+      state:   p.state,
+      country: 'India',
+      type:    p.types?.includes('airport') ? 'airport' : p.types?.includes('locality') ? 'city' : 'city',
+      source:  'google',
+      desc:    p.description,
+    }));
+  } catch(e) {
+    return [];
+  }
 }
 
 async function fetchPlaceSuggestions(query) {
   if (!query || query.length < 1) return [];
   const key = query.toLowerCase().trim();
 
-  // 1. Instant local results (all matches, no cap)
+  // 1. Instant local results
   const local = searchLocalPlaces(query);
   const localMapped = local.map(p => ({
-    name: p.name,
-    state: p.state,
-    country: 'India',
-    type: p.type,
-    source: 'local'
+    name: p.name, state: p.state, country: 'India', type: p.type, source: 'local'
   }));
 
-  // 2. Always enrich with Nominatim for completeness (rare/district/village names)
+  // 2. Check cache
   if (acCache[key]) {
-    // Merge cached remote with local, deduplicate
     const seen = new Set(localMapped.map(p => p.name.toLowerCase()));
     const extra = acCache[key].filter(p => !seen.has(p.name.toLowerCase()));
-    return [...localMapped, ...extra].slice(0, 15);
+    return [...localMapped, ...extra].slice(0, 10);
   }
 
-  try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ' India')}&limit=15&addressdetails=1&accept-language=en&countrycodes=in`;
-    const res = await fetch(url, { headers: { 'User-Agent': 'GoJourney/1.0 (travel@gojourney.in)' } });
-    const data = await res.json();
+  // 3. Fetch from Google Places (via backend proxy)
+  const google = await fetchGooglePlaces(query);
 
-    const seen = new Set(localMapped.map(p => p.name.toLowerCase()));
-    const remote = data
-      .map(p => {
-        const name = p.address?.city || p.address?.town || p.address?.village || p.address?.county || p.display_name?.split(',')[0]?.trim() || p.name;
-        return {
-          name,
-          state: p.address?.state || '',
-          country: p.address?.country || 'India',
-          type: p.type || p.class,
-          source: 'nominatim'
-        };
-      })
-      .filter(p => p.name && p.name.length > 1 && !seen.has(p.name.toLowerCase()));
-
-    // Deduplicate remote results themselves
-    const remoteDeduped = [];
-    const remSeen = new Set();
-    for (const r of remote) {
-      if (!remSeen.has(r.name.toLowerCase())) {
-        remSeen.add(r.name.toLowerCase());
-        remoteDeduped.push(r);
-      }
+  // Deduplicate Google results against local
+  const seen = new Set(localMapped.map(p => p.name.toLowerCase()));
+  const googleDeduped = [];
+  const gSeen = new Set();
+  for (const g of google) {
+    if (!seen.has(g.name.toLowerCase()) && !gSeen.has(g.name.toLowerCase())) {
+      gSeen.add(g.name.toLowerCase());
+      googleDeduped.push(g);
     }
-
-    const merged = [...localMapped, ...remoteDeduped].slice(0, 15);
-    acCache[key] = remoteDeduped; // cache only remote so local stays uncapped
-    return merged;
-  } catch(e) {
-    return localMapped.slice(0, 15);
   }
+
+  acCache[key] = googleDeduped;
+  return [...localMapped, ...googleDeduped].slice(0, 10);
 }
 
 function getIcon(type) {
@@ -4652,7 +4528,7 @@ function highlightMatch(text, query) {
 
 function positionDropdown(inputEl, dropdown) {
   const rect = inputEl.getBoundingClientRect();
-  const minW = 280;
+  const minW = 300;
   const w = Math.max(rect.width, minW);
   const left = Math.min(rect.left, window.innerWidth - w - 8);
   dropdown.style.top   = (rect.bottom + 4) + 'px';
@@ -4672,18 +4548,24 @@ function showDropdown(inputEl, results) {
   results.forEach((r) => {
     const item = document.createElement('div');
     item.className = 'ac-item';
-    const subtitle = [r.state, r.country].filter(Boolean).join(', ');
-    item.innerHTML = `<span class="ac-icon">${getIcon(r.type)}</span>
-      <div><div class="ac-main">${highlightMatch(r.name, query)}</div>
-      <div class="ac-sub">${subtitle}</div></div>`;
+    const isGoogle = r.source === 'google';
+    const subtitle = r.desc || [r.state, r.country || 'India'].filter(Boolean).join(', ');
+    const badge = isGoogle
+      ? `<span style="font-size:9px;background:#e8f0fe;color:#1a73e8;padding:1px 5px;border-radius:3px;font-weight:600;margin-left:6px">G</span>`
+      : '';
+    item.innerHTML = `
+      <span class="ac-icon">${getIcon(r.type)}</span>
+      <div style="flex:1;min-width:0">
+        <div class="ac-main">${highlightMatch(r.name, query)}${badge}</div>
+        <div class="ac-sub" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${subtitle}</div>
+      </div>`;
     item.addEventListener('mousedown', (e) => {
       e.preventDefault();
-      inputEl._acSelecting = true;       // flag: selection in progress
+      inputEl._acSelecting = true;
       inputEl.value = r.name;
       removeDropdown(inputEl);
       inputEl.focus();
-      inputEl._acSelecting = false;      // clear flag after focus restored
-      // Refresh cab price preview if a cab input was just filled
+      inputEl._acSelecting = false;
       if (inputEl.id === 'cabFrom' || inputEl.id === 'cabTo') {
         clearTimeout(window._cabPreviewTimer);
         window._cabPreviewTimer = setTimeout(updateCabPricePreview, 100);
@@ -4730,7 +4612,6 @@ function attachAutocomplete(inputId) {
   const el = document.getElementById(inputId);
   if (!el) return;
 
-  // Wrap in ac-wrapper if not already
   if (!el.closest('.ac-wrapper')) {
     const wrapper = document.createElement('div');
     wrapper.className = 'ac-wrapper';
@@ -4740,18 +4621,20 @@ function attachAutocomplete(inputId) {
 
   let timer;
   el.addEventListener('input', () => {
-    if (el._acSelecting) return;         // ignore input events fired during selection
+    if (el._acSelecting) return;
     clearTimeout(timer);
     const val = el.value.trim();
     if (val.length < 1) { removeDropdown(el); return; }
 
+    // Show instant local results immediately
     const localResults = searchLocalPlaces(val);
     if (localResults.length > 0) {
-      showDropdown(el, localResults.map(p => ({ name: p.name, state: p.state, country: 'India', type: p.type })));
+      showDropdown(el, localResults.map(p => ({ name: p.name, state: p.state, country: 'India', type: p.type, source: 'local' })));
     } else {
       showLoading(el);
     }
 
+    // Then enrich with Google Places after short delay
     timer = setTimeout(async () => {
       const results = await fetchPlaceSuggestions(val);
       if (el.value.trim() === val && !el._acSelecting) {
@@ -4780,7 +4663,6 @@ function attachAutocomplete(inputId) {
     }
   });
 
-  // Only close on blur if a selection isn't happening
   el.addEventListener('blur', () => {
     if (el._acSelecting) return;
     setTimeout(() => removeDropdown(el), 150);
