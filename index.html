@@ -2729,45 +2729,83 @@ async function performSearch(type) {
     const from = document.getElementById('cabFrom').value.trim();
     const to   = document.getElementById('cabTo').value.trim();
     const cabDate = document.getElementById('cabDate').value;
-    showToast('🚗 Calculating distances...');
-    let dist = 80;
-    if (from && to) {
-      const [fromC, toC] = await Promise.all([geocodeCity(from), geocodeCity(to)]);
-      if (fromC && toC) dist = haversineKm(fromC, toC);
-    }
-    results = CABS.map(c => ({
-      ...c,
-      price: Math.max(c.minFare, Math.round(dist * c.price)),
-      pricePerKm: c.price,
-      distance: dist,
-      from, to, date: cabDate,
-    }));
-    title = 'Available Cabs' + (from && to ? ' — ' + from + ' → ' + to : from ? ' from ' + from : '');
-    document.getElementById('resultsSubtitle') && (document.getElementById('resultsSubtitle').textContent =
-      dist ? '📏 Estimated distance: ' + dist + ' km • ' + results.length + ' vehicles' : results.length + ' vehicles');
-    App.searchParams = { from, to, dist };
-    // Sync preview bar to same distance so they always match
-    const previewText = document.getElementById('cabPreviewText');
-    const previewBar = document.getElementById('cabPricePreview');
-    if (previewText && previewBar) {
-      previewBar.style.display = 'block';
-      const fares = CABS.map(c => `${c.name}: <strong>₹${Math.max(c.minFare, Math.round(dist * c.price)).toLocaleString()}</strong>`).join(' &nbsp;|&nbsp; ');
-      previewText.innerHTML = `📏 ${dist} km &nbsp;|&nbsp; ${fares}`;
+    if (!from || !to) { showToast('⚠️ Please enter both From and To cities'); return; }
+    showToast('🚗 Getting real distance from Google Maps...');
+    try {
+      const apiRes = await fetch(`https://gojourney-production.up.railway.app/api/search/cabs?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${cabDate}`);
+      const apiData = await apiRes.json();
+      const dist = apiData.distanceKm || 0;
+      results = (apiData.results || []).map(c => ({
+        id: 'cab_' + c.id,
+        name: c.name,
+        vehicle: c.vehicle,
+        img: '🚗',
+        icon: c.icon,
+        capacity: c.capacity,
+        price: c.fare,
+        pricePerKm: c.pricePerKm,
+        distance: dist,
+        duration: c.duration,
+        features: c.includes || ['Fuel', 'Driver', 'Tolls'],
+        type: 'cab',
+        from, to, date: cabDate,
+        badge: c.id === 'mini' ? 'Best Value' : c.id === 'sedan' ? 'Popular' : c.id === 'suv' ? 'Family Pick' : c.id === 'luxury' ? 'Premium' : 'Group Trip',
+      }));
+      const sourceLabel = apiData.source === 'google_maps' ? '✅ Real distance via Google Maps' : '📐 Estimated distance';
+      title = 'Available Cabs — ' + from + ' → ' + to;
+      document.getElementById('resultsSubtitle') && (document.getElementById('resultsSubtitle').textContent =
+        `📏 ${dist} km • ${apiData.duration || ''} • ${sourceLabel}`);
+      App.searchParams = { from, to, dist };
+      const previewText = document.getElementById('cabPreviewText');
+      const previewBar = document.getElementById('cabPricePreview');
+      if (previewText && previewBar) {
+        previewBar.style.display = 'block';
+        const fares = results.map(c => `${c.name}: <strong>₹${c.price.toLocaleString()}</strong>`).join(' &nbsp;|&nbsp; ');
+        previewText.innerHTML = `📏 ${dist} km &nbsp;|&nbsp; ${fares}`;
+      }
+    } catch(e) {
+      showToast('⚠️ Could not fetch cab data. Please try again.');
+      return;
     }
   } else if (type === 'buses') {
     const from = document.getElementById('busFrom').value.trim();
     const to   = document.getElementById('busTo').value.trim();
     const busDate = document.getElementById('busDate').value;
     const busType = document.getElementById('busType').value;
-    showToast('🚌 Finding buses from ' + (from||'origin') + ' to ' + (to||'destination') + '...');
-    let dist = 400;
-    if (from && to) {
-      const [fromC, toC] = await Promise.all([geocodeCity(from + ', India'), geocodeCity(to + ', India')]);
-      if (fromC && toC) dist = haversineKm(fromC, toC);
+    if (!from || !to) { showToast('⚠️ Please enter both From and To cities'); return; }
+    showToast('🚌 Finding real buses from ' + from + ' to ' + to + '...');
+    try {
+      const apiRes = await fetch(`https://gojourney-production.up.railway.app/api/search/buses?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${busDate}`);
+      const apiData = await apiRes.json();
+      let busResults = apiData.results || [];
+      if (busType && busType !== '' && busType !== 'All Types') {
+        busResults = busResults.filter(b => (b.type || '').toLowerCase().includes(busType.toLowerCase()));
+      }
+      results = busResults.map((b, i) => ({
+        id: String(b._id || 'b_' + i),
+        name: b.name,
+        busType: b.type,
+        route: from + ' → ' + to,
+        departure: b.departure,
+        arrival: b.arrival,
+        duration: '',
+        type: 'bus',
+        price: b.price,
+        seats: b.totalSeats,
+        available: b.availableSeats || Math.floor(Math.random() * 20 + 5),
+        rating: (4.0 + Math.random() * 0.9).toFixed(1),
+        badge: b.type,
+        features: [b.type, b.name],
+        from, to, date: busDate,
+      }));
+      title = 'Buses — ' + from + ' → ' + to;
+      document.getElementById('resultsSubtitle') && (document.getElementById('resultsSubtitle').textContent =
+        results.length > 0 ? results.length + ' buses found' : 'No buses found for this route');
+      App.searchParams = { from, to };
+    } catch(e) {
+      showToast('⚠️ Could not fetch bus data. Please try again.');
+      return;
     }
-    results = generateBusResults(from, to, dist, busType, busDate);
-    title = 'Buses' + (from && to ? ' — ' + from + ' → ' + to : from ? ' from ' + from : '');
-    App.searchParams = { from, to, dist };
   } else if (type === 'tours') {
     const dest = document.getElementById('tourDest').value.trim();
     const destLower = dest.toLowerCase();
@@ -2793,15 +2831,32 @@ async function performSearch(type) {
     const from = document.getElementById('shuttleFrom').value.trim();
     const to   = document.getElementById('shuttleTo').value.trim();
     const shuttleDate = document.getElementById('shuttleDate').value;
-    showToast('🚐 Finding shuttles...');
-    let dist = 25;
-    if (from && to) {
-      const [fromC, toC] = await Promise.all([geocodeCity(from + ', India'), geocodeCity(to + ', India')]);
-      if (fromC && toC) dist = Math.max(5, haversineKm(fromC, toC));
+    showToast('🚐 Finding real shuttles...');
+    try {
+      const cityGuess = from || to || '';
+      const apiRes = await fetch(`https://gojourney-production.up.railway.app/api/search/shuttles?city=${encodeURIComponent(cityGuess)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+      const apiData = await apiRes.json();
+      results = (apiData.results || []).map((s, i) => ({
+        id: String(s._id || 'sh_' + i),
+        name: s.name,
+        route: s.from + ' ↔ ' + s.to,
+        timing: s.timing,
+        frequency: s.frequency,
+        price: s.price,
+        duration: s.duration,
+        capacity: 12,
+        features: [s.frequency, s.timing],
+        type: 'shuttle',
+        from: s.from, to: s.to, date: shuttleDate,
+      }));
+      title = 'Shuttle Services' + (from || to ? ' — ' + (from || to) : '');
+      document.getElementById('resultsSubtitle') && (document.getElementById('resultsSubtitle').textContent =
+        results.length > 0 ? results.length + ' shuttles found' : 'No shuttles found for this area');
+      App.searchParams = { from, to, date: shuttleDate };
+    } catch(e) {
+      showToast('⚠️ Could not fetch shuttle data. Please try again.');
+      return;
     }
-    results = generateShuttleResults(from, to, dist, shuttleDate);
-    title = 'Shuttle Services' + (from && to ? ' — ' + from + ' ↔ ' + to : '');
-    App.searchParams = { from, to, date: shuttleDate, dist };
   }
 
   App.searchResults = results;
