@@ -2775,7 +2775,9 @@ async function performSearch(type) {
     if (!from || !to) { showToast('⚠️ Please enter both From and To cities'); return; }
     showToast('🚌 Finding real buses from ' + from + ' to ' + to + '...');
     try {
-      const apiRes = await fetch(`https://gojourney-production.up.railway.app/api/search/buses?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${busDate}`);
+      function normCity(n) { return n.replace(/^(New|Old|Greater|Navi|North|South|East|West|Central)\s+/i,'').replace(/\s*(City|District|Junction|Jn|Cantt)$/i,'').trim(); }
+      const fromN = normCity(from), toN = normCity(to);
+      const apiRes = await fetch(`https://gojourney-production.up.railway.app/api/search/buses?from=${encodeURIComponent(fromN)}&to=${encodeURIComponent(toN)}&date=${busDate}`);
       const apiData = await apiRes.json();
       let busResults = apiData.results || [];
       if (busType && busType !== '' && busType !== 'All Types') {

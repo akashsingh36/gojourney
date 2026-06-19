@@ -358,18 +358,30 @@ app.get('/api/search/cabs', async (req, res) => {
 //  Returns real buses from your DB.
 //  Add more routes to BusRoute collection to expand.
 // ───────────────────────────────────────────────────────
+// Normalize city names: "New Delhi" -> "delhi", "Greater Mumbai" -> "mumbai"
+function normalizeCity(name) {
+  return name.toLowerCase().trim()
+    .replace(/^(new|old|greater|navi|north|south|east|west|central)\s+/i, '')
+    .replace(/\s*(city|district|junction|jn|cantt|cantonment)$/i, '')
+    .trim();
+}
+
 app.get('/api/search/buses', async (req, res) => {
   const { from, to, date } = req.query;
   if (!from || !to) return res.status(400).json({ error: 'from and to are required' });
 
-  const fromLower = from.toLowerCase().trim();
-  const toLower   = to.toLowerCase().trim();
+  const fromNorm = normalizeCity(from);
+  const toNorm   = normalizeCity(to);
+  const fromFull = from.toLowerCase().trim();
+  const toFull   = to.toLowerCase().trim();
 
   try {
-    // Flexible match: "new delhi" matches "delhi", "varanasi" matches "varanasi"
+    // Smart match: tries normalized ("delhi") AND full ("new delhi") form
+    const fromRegex = fromNorm !== fromFull ? new RegExp('(' + fromNorm + '|' + fromFull + ')', 'i') : new RegExp(fromNorm, 'i');
+    const toRegex   = toNorm   !== toFull   ? new RegExp('(' + toNorm   + '|' + toFull   + ')', 'i') : new RegExp(toNorm, 'i');
     const buses = await BusRoute.find({
-      from: { $regex: fromLower, $options: 'i' },
-      to:   { $regex: toLower,   $options: 'i' },
+      from: { $regex: fromRegex },
+      to:   { $regex: toRegex },
       active: true,
     }).lean();
 
@@ -414,15 +426,21 @@ app.get('/api/search/shuttles', async (req, res) => {
 
   try {
     let query = { active: true };
+    const normCity = city ? normalizeCity(city) : '';
+    const normFrom = from ? normalizeCity(from) : '';
+    const normTo   = to   ? normalizeCity(to)   : '';
 
-    if (city) {
-      query.city = { $regex: city.toLowerCase(), $options: 'i' };
+    if (normCity) {
+      query.city = { $regex: normCity, $options: 'i' };
     }
-    if (from) {
-      query.from = { $regex: from, $options: 'i' };
+    if (normFrom) {
+      query.$or = [
+        { from: { $regex: normFrom, $options: 'i' } },
+        { city: { $regex: normFrom, $options: 'i' } },
+      ];
     }
-    if (to) {
-      query.to = { $regex: to, $options: 'i' };
+    if (normTo) {
+      query.to = { $regex: normTo, $options: 'i' };
     }
 
     const shuttles = await ShuttleRoute.find(query).lean();
