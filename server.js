@@ -256,8 +256,8 @@ app.get('/api/places/autocomplete', async (req, res) => {
       + `?input=${encodeURIComponent(q)}`
       + `&components=country:in`
       + `&language=en`
-      + `&types=(cities)`
       + `&key=${GOOGLE_MAPS_KEY}`;
+    // No &types filter — returns cities, areas, airports, stations, landmarks, everything
 
     const resp = await httpGet(url);
     const data = resp.body;
