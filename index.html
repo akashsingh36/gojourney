@@ -319,6 +319,203 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
   background: white;
 }
 .stab:hover:not(.active) { color: var(--primary); background: var(--light); }
+.interest-chip {
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.interest-chip:hover { border-color: var(--primary-light); color: var(--primary); }
+.interest-chip.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+/* ── Floating AI Chat Assistant ── */
+#chatBubble {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--cyan));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(10,77,163,0.35);
+  z-index: 9998;
+  transition: var(--transition);
+}
+#chatBubble:hover { transform: scale(1.08); box-shadow: 0 8px 24px rgba(10,77,163,0.45); }
+
+#chatWidget {
+  position: fixed;
+  bottom: 96px;
+  right: 24px;
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  height: 480px;
+  max-height: calc(100vh - 140px);
+  background: #fff;
+  border-radius: var(--radius);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 9999;
+}
+#chatWidget.hidden { display: none; }
+
+#chatWidgetHeader {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #fff;
+  padding: 16px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+#chatWidgetClose {
+  background: rgba(255,255,255,0.15);
+  border: none;
+  color: #fff;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+#chatWidgetClose:hover { background: rgba(255,255,255,0.3); }
+
+#chatWidgetMessages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #f8fafc;
+}
+
+.chat-msg {
+  max-width: 85%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.chat-msg.user {
+  align-self: flex-end;
+  background: var(--primary);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.chat-msg.assistant {
+  align-self: flex-start;
+  background: #fff;
+  color: var(--text);
+  border: 1px solid #e2e8f0;
+  border-bottom-left-radius: 4px;
+}
+.chat-msg.typing {
+  align-self: flex-start;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+#chatWidgetInputRow {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid #eee;
+  background: #fff;
+}
+#chatWidgetInput {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 20px;
+  border: 1.5px solid #e2e8f0;
+  font-size: 13.5px;
+  font-family: 'DM Sans', sans-serif;
+  outline: none;
+}
+#chatWidgetInput:focus { border-color: var(--primary-light); }
+#chatWidgetSend {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+#chatWidgetSend:hover { background: var(--primary-dark); }
+
+@media (max-width: 480px) {
+  #chatWidget { right: 16px; bottom: 88px; width: calc(100vw - 32px); }
+  #chatBubble { right: 16px; bottom: 16px; }
+}
+
+/* ── In-tab chat (Ask GoJourney AI tab) ── */
+#chatTabContainer {
+  display: flex;
+  flex-direction: column;
+  height: 420px;
+  background: #f8fafc;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+#chatTabMessages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+#chatTabInputRow {
+  display: flex;
+  gap: 10px;
+  padding: 14px;
+  background: #fff;
+  border-top: 1px solid #eee;
+}
+#chatTabInput {
+  flex: 1;
+  padding: 12px 16px;
+  border-radius: 24px;
+  border: 1.5px solid #e2e8f0;
+  font-size: 14px;
+  font-family: 'DM Sans', sans-serif;
+  outline: none;
+}
+#chatTabInput:focus { border-color: var(--primary-light); }
+#chatTabSend {
+  padding: 0 22px;
+  border-radius: 24px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+#chatTabSend:hover { background: var(--primary-dark); }
 .tab-content { padding: 20px; border-radius: 0 0 20px 20px; }
 .search-row {
   display: grid;
@@ -1682,6 +1879,9 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
         <button class="stab" data-tab="buses" onclick="switchTab('buses', this)">🚌 Buses</button>
         <button class="stab" data-tab="tours" onclick="switchTab('tours', this)">🗺️ Tours</button>
         <button class="stab" data-tab="shuttle" onclick="switchTab('shuttle', this)">🚐 Shuttle</button>
+        <button class="stab" data-tab="aiplanner" onclick="switchTab('aiplanner', this)">🤖 AI Trip Planner</button>
+        <button class="stab" data-tab="grouptrip" onclick="switchTab('grouptrip', this)">🎓 Group/College Trip</button>
+        <button class="stab" data-tab="chat" onclick="switchTab('chat', this); initChatTabIfEmpty()">💬 Ask GoJourney AI</button>
       </div>
       
       <div class="tab-content" id="tab-hotels">
@@ -1838,6 +2038,84 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
           <button class="search-btn" onclick="performSearch('shuttle')">🔍 Search</button>
         </div>
       </div>
+
+      <div class="tab-content hidden" id="tab-aiplanner">
+        <div class="search-row">
+          <div class="search-field">
+            <label>From (optional)</label>
+            <input type="text" id="aiSource" placeholder="e.g. Delhi" autocomplete="off">
+          </div>
+          <div class="search-field">
+            <label>Destination</label>
+            <input type="text" id="aiDestination" placeholder="e.g. Manali" autocomplete="off">
+          </div>
+          <div class="search-field">
+            <label>Budget (₹)</label>
+            <input type="number" id="aiBudget" placeholder="e.g. 10000" min="500">
+          </div>
+          <div class="search-field">
+            <label>Days</label>
+            <input type="number" id="aiDays" placeholder="e.g. 3" min="1" max="30">
+          </div>
+          <button class="search-btn" onclick="runAiTripPlanner()">✨ Plan My Trip</button>
+        </div>
+        <div class="search-row" style="margin-top:12px">
+          <div class="search-field" style="flex:1 1 100%">
+            <label>Interests (select any)</label>
+            <div id="aiInterests" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">
+              <button type="button" class="interest-chip" data-val="Adventure">🧗 Adventure</button>
+              <button type="button" class="interest-chip" data-val="Religious">🛕 Religious</button>
+              <button type="button" class="interest-chip" data-val="Family">👨‍👩‍👧 Family</button>
+              <button type="button" class="interest-chip" data-val="Nature">🌲 Nature</button>
+              <button type="button" class="interest-chip" data-val="Nightlife">🌃 Nightlife</button>
+              <button type="button" class="interest-chip" data-val="Food">🍲 Food</button>
+              <button type="button" class="interest-chip" data-val="Budget">💰 Budget-friendly</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content hidden" id="tab-grouptrip">
+        <div class="search-row">
+          <div class="search-field">
+            <label>From (optional)</label>
+            <input type="text" id="groupSource" placeholder="e.g. Lucknow" autocomplete="off">
+          </div>
+          <div class="search-field">
+            <label>Destination</label>
+            <input type="text" id="groupDestination" placeholder="e.g. Rishikesh" autocomplete="off">
+          </div>
+          <div class="search-field">
+            <label>Group Size</label>
+            <input type="number" id="groupSize" placeholder="e.g. 20" min="2" max="60">
+          </div>
+          <div class="search-field">
+            <label>Budget per Person (₹)</label>
+            <input type="number" id="groupBudgetPP" placeholder="e.g. 2500" min="300">
+          </div>
+          <div class="search-field">
+            <label>Days</label>
+            <input type="number" id="groupDays" placeholder="e.g. 2" min="1" max="15">
+          </div>
+        </div>
+        <div class="search-row" style="margin-top:12px">
+          <div class="search-field">
+            <label>College / Group Name (optional)</label>
+            <input type="text" id="groupCollegeName" placeholder="e.g. Gautam Buddha University CS Dept" autocomplete="off">
+          </div>
+          <button class="search-btn" onclick="runGroupTripPlanner()">🎓 Plan Group Trip</button>
+        </div>
+      </div>
+
+      <div class="tab-content hidden" id="tab-chat">
+        <div id="chatTabContainer">
+          <div id="chatTabMessages"></div>
+          <div id="chatTabInputRow">
+            <input type="text" id="chatTabInput" placeholder="Ask about destinations, best time to visit, packing tips..." onkeydown="if(event.key==='Enter')sendChatTabMessage()">
+            <button onclick="sendChatTabMessage()" id="chatTabSend">➤ Send</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="hero-stats">
@@ -1896,6 +2174,20 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
       </div>
       <div class="results-grid" id="resultsGrid"></div>
     </div>
+  </div>
+</section>
+
+<!-- AI Trip Planner Results -->
+<section class="search-results hidden" id="aiPlannerResults">
+  <div class="container">
+    <div id="aiPlannerContent"></div>
+  </div>
+</section>
+
+<!-- Group/College Trip Planner Results -->
+<section class="search-results hidden" id="groupTripResults">
+  <div class="container">
+    <div id="groupTripContent"></div>
   </div>
 </section>
 
@@ -2940,6 +3232,343 @@ function renderResults(results) {
 function bookItem(idx) {
   const item = window._resultItems[idx];
   if (item) startBooking(item.type, item);
+}
+
+// ===================== AI TRIP PLANNER =====================
+const aiSelectedInterests = new Set();
+
+document.addEventListener('click', function(e) {
+  const chip = e.target.closest('.interest-chip');
+  if (!chip) return;
+  const val = chip.dataset.val;
+  if (aiSelectedInterests.has(val)) {
+    aiSelectedInterests.delete(val);
+    chip.classList.remove('active');
+  } else {
+    aiSelectedInterests.add(val);
+    chip.classList.add('active');
+  }
+});
+
+async function runAiTripPlanner() {
+  const source      = document.getElementById('aiSource').value.trim();
+  const destination = document.getElementById('aiDestination').value.trim();
+  const budget      = document.getElementById('aiBudget').value;
+  const days        = document.getElementById('aiDays').value;
+  const interests   = Array.from(aiSelectedInterests);
+
+  if (!destination) { showToast('⚠️ Please enter a destination'); return; }
+  if (!budget || budget < 500) { showToast('⚠️ Please enter a valid budget (₹500+)'); return; }
+  if (!days || days < 1) { showToast('⚠️ Please enter number of days'); return; }
+
+  const section = document.getElementById('aiPlannerResults');
+  const content = document.getElementById('aiPlannerContent');
+  section.classList.remove('hidden');
+  section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  content.innerHTML = `
+    <div style="text-align:center;padding:60px 20px">
+      <div style="font-size:36px;margin-bottom:12px">✨</div>
+      <p style="color:var(--text-muted);font-size:15px">AI is planning your ${days}-day trip to ${destination}...</p>
+    </div>`;
+
+  try {
+    const res = await fetch('https://gojourney-production.up.railway.app/api/trip-planner', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source, destination, budget: Number(budget), days: Number(days), interests }),
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      content.innerHTML = `
+        <div style="text-align:center;padding:60px 20px">
+          <div style="font-size:36px;margin-bottom:12px">⚠️</div>
+          <p style="color:var(--text-muted);font-size:15px">${data.error}</p>
+        </div>`;
+      return;
+    }
+
+    renderAiTripPlan(data.plan, destination);
+  } catch (e) {
+    content.innerHTML = `
+      <div style="text-align:center;padding:60px 20px">
+        <div style="font-size:36px;margin-bottom:12px">⚠️</div>
+        <p style="color:var(--text-muted);font-size:15px">Could not generate trip plan. Please try again.</p>
+      </div>`;
+  }
+}
+
+function renderAiTripPlan(plan, destination) {
+  const content = document.getElementById('aiPlannerContent');
+  if (!plan) {
+    content.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:40px">No plan generated. Please try again.</p>';
+    return;
+  }
+
+  const budgetColors = { 'under budget': '#16a34a', 'on budget': 'var(--primary)', 'over budget': '#dc2626' };
+  const budgetColor = budgetColors[plan.budgetFit] || 'var(--primary)';
+
+  const dayCards = (plan.itinerary || []).map(d => `
+    <div style="background:#fff;border-radius:var(--radius-sm);padding:20px;margin-bottom:14px;box-shadow:0 2px 10px rgba(0,0,0,0.06)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <h4 style="color:var(--primary);margin:0">Day ${d.day}: ${d.title}</h4>
+        <span style="background:var(--accent);color:#fff;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600">₹${(d.estimatedCost||0).toLocaleString()}</span>
+      </div>
+      <ul style="margin:0;padding-left:20px;color:var(--text-muted);font-size:14px;line-height:1.8">
+        ${(d.activities||[]).map(a => `<li>${a}</li>`).join('')}
+      </ul>
+    </div>`).join('');
+
+  const hotelCards = (plan.hotelSuggestions || []).map(h => `
+    <div style="background:#f8fafc;border-radius:var(--radius-sm);padding:14px 18px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <strong>${h.name}</strong>
+        ${h.note ? `<p style="margin:2px 0 0;font-size:13px;color:var(--text-muted)">${h.note}</p>` : ''}
+      </div>
+      <span style="font-weight:700;color:var(--primary)">₹${(h.pricePerNight||0).toLocaleString()}/night</span>
+    </div>`).join('') || '<p style="color:var(--text-muted);font-size:14px">No specific hotel data available for this destination.</p>';
+
+  const tips = (plan.tips || []).map(t => `<li>${t}</li>`).join('');
+
+  content.innerHTML = `
+    <div class="results-header" style="margin-bottom:24px">
+      <div>
+        <h2>✨ Your AI-Generated Trip to ${plan.destination || destination}</h2>
+        <p style="color:var(--text-muted);font-size:14px;margin-top:4px">${plan.days} days • Total estimated cost: ₹${(plan.totalEstimatedCost||0).toLocaleString()}
+          <span style="margin-left:10px;color:${budgetColor};font-weight:600">● ${plan.budgetFit || ''}</span>
+        </p>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:24px" class="ai-plan-grid">
+      <div>
+        <h3 style="margin-bottom:14px">📅 Day-by-Day Itinerary</h3>
+        ${dayCards}
+      </div>
+      <div>
+        <h3 style="margin-bottom:14px">🏨 Hotel Suggestions</h3>
+        ${hotelCards}
+        ${tips ? `<h3 style="margin:24px 0 14px">💡 Tips</h3><ul style="padding-left:20px;color:var(--text-muted);font-size:14px;line-height:1.8">${tips}</ul>` : ''}
+      </div>
+    </div>
+    <style>@media(max-width:768px){.ai-plan-grid{grid-template-columns:1fr !important}}</style>`;
+}
+
+// ===================== GROUP / COLLEGE TRIP PLANNER =====================
+async function runGroupTripPlanner() {
+  const source       = document.getElementById('groupSource').value.trim();
+  const destination  = document.getElementById('groupDestination').value.trim();
+  const groupSize    = document.getElementById('groupSize').value;
+  const budgetPP      = document.getElementById('groupBudgetPP').value;
+  const days          = document.getElementById('groupDays').value;
+  const collegeName   = document.getElementById('groupCollegeName').value.trim();
+
+  if (!destination) { showToast('⚠️ Please enter a destination'); return; }
+  if (!groupSize || groupSize < 2) { showToast('⚠️ Please enter a valid group size (2+)'); return; }
+  if (!budgetPP || budgetPP < 300) { showToast('⚠️ Please enter a valid per-person budget'); return; }
+  if (!days || days < 1) { showToast('⚠️ Please enter number of days'); return; }
+
+  const section = document.getElementById('groupTripResults');
+  const content = document.getElementById('groupTripContent');
+  section.classList.remove('hidden');
+  section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  content.innerHTML = `
+    <div style="text-align:center;padding:60px 20px">
+      <div style="font-size:36px;margin-bottom:12px">🎓</div>
+      <p style="color:var(--text-muted);font-size:15px">Planning your group trip for ${groupSize} people...</p>
+    </div>`;
+
+  try {
+    const res = await fetch('https://gojourney-production.up.railway.app/api/group-trip', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        source, destination,
+        groupSize: Number(groupSize),
+        budgetPerPerson: Number(budgetPP),
+        days: Number(days),
+        collegeName,
+      }),
+    });
+    const data = await res.json();
+    if (data.error) {
+      content.innerHTML = `<div style="text-align:center;padding:60px 20px"><p style="color:var(--text-muted)">${data.error}</p></div>`;
+      return;
+    }
+    renderGroupTripPlan(data);
+  } catch (e) {
+    content.innerHTML = `<div style="text-align:center;padding:60px 20px"><p style="color:var(--text-muted)">Could not generate group trip plan. Please try again.</p></div>`;
+  }
+}
+
+function renderGroupTripPlan(data) {
+  const content = document.getElementById('groupTripContent');
+
+  const busRows = (data.transport?.busOptions || []).map(b => `
+    <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #eee">
+      <span>${b.name} (${b.type}) — ${b.departure} → ${b.arrival}</span>
+      <strong>₹${(b.price||0).toLocaleString()}/seat</strong>
+    </div>`).join('') || '<p style="color:var(--text-muted);font-size:14px">No direct bus routes found — consider chartered transport below.</p>';
+
+  const gv = data.transport?.groupVehicle;
+  const groupVehicleBlock = gv ? `
+    <div style="background:#f8fafc;border-radius:var(--radius-sm);padding:16px 18px;margin-top:12px">
+      <strong>🚐 Recommended: ${gv.vehicleType} × ${gv.vehiclesNeeded}</strong>
+      <p style="margin:6px 0 0;color:var(--text-muted);font-size:14px">${gv.distanceKm} km one-way • Round-trip total: ₹${gv.totalFare.toLocaleString()} • ₹${gv.perPersonFare.toLocaleString()}/person</p>
+    </div>` : '';
+
+  const hotelRows = (data.accommodation || []).map(h => `
+    <div style="background:#f8fafc;border-radius:var(--radius-sm);padding:14px 18px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong>${h.name}</strong>
+        <span style="color:var(--primary);font-weight:700">₹${h.costPerPersonPerNight.toLocaleString()}/person/night</span>
+      </div>
+      <p style="margin:4px 0 0;font-size:13px;color:var(--text-muted)">${h.roomsNeeded} rooms (triple-sharing) needed for the group</p>
+    </div>`).join('') || '<p style="color:var(--text-muted);font-size:14px">No hotel data available — try a more specific destination.</p>';
+
+  const cb = data.costBreakdownPerPerson;
+
+  content.innerHTML = `
+    <div class="results-header" style="margin-bottom:24px">
+      <div>
+        <h2>🎓 Group Trip Plan${data.collegeName ? ' — ' + data.collegeName : ''}</h2>
+        <p style="color:var(--text-muted);font-size:14px;margin-top:4px">
+          ${data.groupSize} people • ${data.days} days • ${data.destination}${data.source ? ' from ' + data.source : ''} •
+          Total group budget: ₹${data.totalGroupBudget.toLocaleString()}
+        </p>
+        ${data.note ? `<p style="color:var(--accent);font-size:13px;margin-top:6px;font-weight:600">💡 ${data.note}</p>` : ''}
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:24px" class="group-plan-grid">
+      <div>
+        <h3 style="margin-bottom:14px">🚌 Transport Options</h3>
+        <div style="background:#fff;border-radius:var(--radius-sm);padding:18px;box-shadow:0 2px 10px rgba(0,0,0,0.06)">
+          ${busRows}
+          ${groupVehicleBlock}
+        </div>
+        <h3 style="margin:24px 0 14px">🏨 Shared Accommodation</h3>
+        ${hotelRows}
+      </div>
+      <div>
+        <h3 style="margin-bottom:14px">💰 Per-Person Cost Breakdown</h3>
+        <div style="background:#fff;border-radius:var(--radius-sm);padding:18px;box-shadow:0 2px 10px rgba(0,0,0,0.06)">
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee"><span>Accommodation</span><strong>₹${cb.accommodation.toLocaleString()}</strong></div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee"><span>Transport</span><strong>₹${cb.transport.toLocaleString()}</strong></div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee"><span>Food & Misc</span><strong>₹${cb.foodAndMisc.toLocaleString()}</strong></div>
+          <div style="display:flex;justify-content:space-between;padding:12px 0 0;font-size:16px"><span><strong>Total / person</strong></span><strong style="color:var(--primary)">₹${cb.total.toLocaleString()}</strong></div>
+        </div>
+      </div>
+    </div>
+    <style>@media(max-width:768px){.group-plan-grid{grid-template-columns:1fr !important}}</style>`;
+}
+
+// ===================== AI CHAT ASSISTANT (shared engine: bubble + tab) =====================
+let chatHistory = []; // [{ role: 'user'|'assistant', content: '...' }]
+let chatBusy = false;
+
+function toggleChatWidget() {
+  const widget = document.getElementById('chatWidget');
+  const isHidden = widget.classList.contains('hidden');
+  widget.classList.toggle('hidden');
+  if (isHidden) {
+    const container = document.getElementById('chatWidgetMessages');
+    if (container.children.length === 0) {
+      if (chatHistory.length === 0) {
+        addChatMessage('assistant', "Hi! 👋 I'm the GoJourney AI Assistant. Ask me anything about traveling in India — best time to visit a place, packing tips, local food, festivals, budget advice, and more!", 'chatWidgetMessages');
+      } else {
+        chatHistory.forEach(m => addChatMessage(m.role, m.content, 'chatWidgetMessages'));
+      }
+    }
+    document.getElementById('chatWidgetInput').focus();
+  }
+}
+
+function addChatMessage(role, content, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const div = document.createElement('div');
+  div.className = 'chat-msg ' + role;
+  div.textContent = content;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div;
+}
+
+function syncChatContainers(role, content, excludeId) {
+  // Mirror messages across both the floating widget and the dedicated tab,
+  // whichever isn't the one the user just typed into, so history stays consistent.
+  ['chatWidgetMessages', 'chatTabMessages'].forEach(id => {
+    if (id !== excludeId && document.getElementById(id)) {
+      addChatMessage(role, content, id);
+    }
+  });
+}
+
+async function sendChatMessageCore(text, sourceContainerId) {
+  if (!text.trim() || chatBusy) return;
+  chatBusy = true;
+
+  addChatMessage('user', text, sourceContainerId);
+  syncChatContainers('user', text, sourceContainerId);
+  chatHistory.push({ role: 'user', content: text });
+
+  const typingEl = addChatMessage('assistant', 'Typing...', sourceContainerId);
+  if (typingEl) typingEl.classList.add('typing');
+
+  try {
+    const res = await fetch('https://gojourney-production.up.railway.app/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: chatHistory }),
+    });
+    const data = await res.json();
+    if (typingEl) typingEl.remove();
+
+    if (data.error) {
+      addChatMessage('assistant', '⚠️ ' + data.error, sourceContainerId);
+      syncChatContainers('assistant', '⚠️ ' + data.error, sourceContainerId);
+    } else {
+      addChatMessage('assistant', data.reply, sourceContainerId);
+      syncChatContainers('assistant', data.reply, sourceContainerId);
+      chatHistory.push({ role: 'assistant', content: data.reply });
+    }
+  } catch (e) {
+    if (typingEl) typingEl.remove();
+    const errMsg = "⚠️ Couldn't reach the AI Assistant. Please try again.";
+    addChatMessage('assistant', errMsg, sourceContainerId);
+    syncChatContainers('assistant', errMsg, sourceContainerId);
+  } finally {
+    chatBusy = false;
+  }
+}
+
+function sendChatWidgetMessage() {
+  const input = document.getElementById('chatWidgetInput');
+  const text = input.value;
+  input.value = '';
+  sendChatMessageCore(text, 'chatWidgetMessages');
+}
+
+function sendChatTabMessage() {
+  const input = document.getElementById('chatTabInput');
+  const text = input.value;
+  input.value = '';
+  sendChatMessageCore(text, 'chatTabMessages');
+}
+
+let chatTabInitialized = false;
+function initChatTabIfEmpty() {
+  const container = document.getElementById('chatTabMessages');
+  if (!container || chatTabInitialized) return;
+  chatTabInitialized = true;
+
+  if (chatHistory.length === 0) {
+    addChatMessage('assistant', "Hi! 👋 I'm the GoJourney AI Assistant. Ask me anything about traveling in India — best time to visit a place, packing tips, local food, festivals, budget advice, and more!", 'chatTabMessages');
+  } else {
+    // Replay existing history (e.g. user already chatted via the floating bubble)
+    chatHistory.forEach(m => addChatMessage(m.role, m.content, 'chatTabMessages'));
+  }
 }
 
 function createResultCard(item, idx) {
@@ -4511,6 +5140,24 @@ function searchLocalPlaces(query) {
   return [...tier1, ...tier2, ...tier3];
 }
 
+// ── MongoDB Atlas places (your own GeoNames data — cities + universities) ──
+async function fetchMongoPlaces(query) {
+  try {
+    const res = await fetch(`https://gojourney-production.up.railway.app/api/places/search?q=${encodeURIComponent(query)}`);
+    const data = await res.json();
+    return (data.predictions || []).map(p => ({
+      name:    p.name,
+      state:   p.state,
+      country: 'India',
+      type:    p.type === 'institution' ? 'institution' : 'city',
+      source:  'mongo',
+      desc:    p.description,
+    }));
+  } catch(e) {
+    return [];
+  }
+}
+
 // ── Google Places via backend proxy ──
 async function fetchGooglePlaces(query) {
   try {
@@ -4546,26 +5193,30 @@ async function fetchPlaceSuggestions(query) {
     return [...localMapped, ...extra].slice(0, 10);
   }
 
-  // 3. Fetch from Google Places (via backend proxy)
-  const google = await fetchGooglePlaces(query);
+  // 3. Fetch from MongoDB (your own data) and Google Places (via backend proxy), in parallel
+  const [mongo, google] = await Promise.all([
+    fetchMongoPlaces(query),
+    fetchGooglePlaces(query),
+  ]);
 
-  // Deduplicate Google results against local
+  // Deduplicate Mongo + Google results against local and each other (Mongo wins ties — it's our curated data)
   const seen = new Set(localMapped.map(p => p.name.toLowerCase()));
-  const googleDeduped = [];
-  const gSeen = new Set();
-  for (const g of google) {
-    if (!seen.has(g.name.toLowerCase()) && !gSeen.has(g.name.toLowerCase())) {
-      gSeen.add(g.name.toLowerCase());
-      googleDeduped.push(g);
+  const merged = [];
+  const mSeen = new Set();
+  for (const item of [...mongo, ...google]) {
+    const k = item.name.toLowerCase();
+    if (!seen.has(k) && !mSeen.has(k)) {
+      mSeen.add(k);
+      merged.push(item);
     }
   }
 
-  acCache[key] = googleDeduped;
-  return [...localMapped, ...googleDeduped].slice(0, 10);
+  acCache[key] = merged;
+  return [...localMapped, ...merged].slice(0, 10);
 }
 
 function getIcon(type) {
-  const icons = { city: '🏙️', town: '🏘️', village: '🏡', airport: '✈️', station: '🚉', administrative: '📍', boundary: '🗺️' };
+  const icons = { city: '🏙️', town: '🏘️', village: '🏡', airport: '✈️', station: '🚉', institution: '🎓', administrative: '📍', boundary: '🗺️' };
   return icons[type] || '📍';
 }
 
@@ -4723,6 +5374,27 @@ function attachAutocomplete(inputId) {
 
 document.addEventListener('DOMContentLoaded', init);
 </script>
+
+<!-- 💬 Floating AI Chat Assistant (available on every page) -->
+<div id="chatBubble" onclick="toggleChatWidget()">
+  <span id="chatBubbleIcon">💬</span>
+</div>
+
+<div id="chatWidget" class="hidden">
+  <div id="chatWidgetHeader">
+    <div>
+      <strong>🤖 GoJourney AI Assistant</strong>
+      <p style="margin:2px 0 0;font-size:12px;opacity:0.85">Ask me anything about travel in India</p>
+    </div>
+    <button onclick="toggleChatWidget()" id="chatWidgetClose">✕</button>
+  </div>
+  <div id="chatWidgetMessages"></div>
+  <div id="chatWidgetInputRow">
+    <input type="text" id="chatWidgetInput" placeholder="Ask about destinations, best time to visit..." onkeydown="if(event.key==='Enter')sendChatWidgetMessage()">
+    <button onclick="sendChatWidgetMessage()" id="chatWidgetSend">➤</button>
+  </div>
+</div>
+
 </body>
 
 <script src="app.js"></script>

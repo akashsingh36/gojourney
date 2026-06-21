@@ -212,11 +212,29 @@ const ShuttleRouteSchema = new mongoose.Schema({
   active:     { type: Boolean, default: true },
 });
 
+// ✅ NEW: Place schema — backs /api/places/search, populated via seed-places.js
+// from GeoNames data (cities, towns, villages, universities, colleges, schools)
+const PlaceSchema = new mongoose.Schema({
+  geonameId:    String,
+  name:         { type: String, required: true },
+  nameLower:    { type: String, index: true },
+  altNames:     [String],
+  latitude:     Number,
+  longitude:    Number,
+  featureClass: String,
+  featureCode:  String,
+  type:         { type: String, enum: ['place', 'institution'], default: 'place' },
+  admin1:       String,
+  population:   { type: Number, default: 0 },
+});
+PlaceSchema.index({ nameLower: 1 });
+
 const User         = mongoose.model('User',         UserSchema);
 const Booking      = mongoose.model('Booking',      BookingSchema);
 const Listing      = mongoose.model('Listing',      ListingSchema);
 const BusRoute     = mongoose.model('BusRoute',     BusRouteSchema);
 const ShuttleRoute = mongoose.model('ShuttleRoute', ShuttleRouteSchema);
+const Place        = mongoose.model('Place',        PlaceSchema);
 
 // ===== AUTH MIDDLEWARE =====
 const authMiddleware = async (req, res, next) => {
@@ -237,6 +255,59 @@ const adminMiddleware = (req, res, next) => {
 
 // ===== ROUTES =====
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
+
+// ───────────────────────────────────────────────────────
+//  ✅ MONGODB PLACES SEARCH (your own GeoNames-derived data)
+//  GET /api/places/search?q=gau
+//  Covers cities/towns/villages + universities/colleges/schools.
+//  Run seed-places.js once (after convert-geonames.js) to populate.
+// ───────────────────────────────────────────────────────
+app.get('/api/places/search', async (req, res) => {
+  const { q } = req.query;
+  if (!q || q.length < 1) return res.json({ predictions: [] });
+
+  try {
+    const query = q.toLowerCase().trim();
+    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    // Tier 1: name starts with query (best matches, e.g. "gau" -> "Gautam Buddha University")
+    // Tier 2: any word in the name starts with query (e.g. "buddha" -> "Gautam Buddha University")
+    const [startsWith, wordStartsWith] = await Promise.all([
+      Place.find({ nameLower: { $regex: '^' + escaped } })
+        .sort({ type: 1, population: -1 }) // institutions are useful too; population breaks ties
+        .limit(8)
+        .lean(),
+      Place.find({ nameLower: { $regex: '\\b' + escaped, $not: { $regex: '^' + escaped } } })
+        .sort({ population: -1 })
+        .limit(8)
+        .lean(),
+    ]);
+
+    const seen = new Set();
+    const results = [];
+    for (const p of [...startsWith, ...wordStartsWith]) {
+      if (seen.has(p._id.toString())) continue;
+      seen.add(p._id.toString());
+      results.push({
+        name: p.name,
+        description: p.type === 'institution'
+          ? [p.name, p.admin1, 'India'].filter(Boolean).join(', ')
+          : [p.name, p.admin1, 'India'].filter(Boolean).join(', '),
+        state: p.admin1 || '',
+        type: p.type === 'institution' ? 'institution' : 'city',
+        latitude: p.latitude,
+        longitude: p.longitude,
+        source: 'mongo',
+      });
+      if (results.length >= 10) break;
+    }
+
+    res.json({ predictions: results });
+  } catch (err) {
+    console.error('Places search (MongoDB) error:', err.message);
+    res.status(500).json({ predictions: [], error: err.message });
+  }
+});
 
 // ───────────────────────────────────────────────────────
 //  ✅ GOOGLE PLACES AUTOCOMPLETE PROXY
@@ -574,6 +645,337 @@ app.get('/api/search/tours', (req, res) => {
 });
 
 // ───────────────────────────────────────────────────────
+//  ✅ AI TRIP PLANNER (OpenAI-powered)
+//
+//  POST /api/trip-planner
+//  Body: { source, destination, budget, days, interests: [...] }
+//
+//  Grounds the AI response in REAL data from your app:
+//    - Destination resolved via your Place (GeoNames) collection
+//    - Hotel suggestions pulled from RapidAPI Hotels4 (same flow as /api/hotels/search)
+//    - Cab fare estimate calculated with your existing CAB_TYPES pricing logic
+//  Set OPENAI_API_KEY in Railway env vars to enable.
+// ───────────────────────────────────────────────────────
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
+
+async function openaiChat(messages, opts = {}) {
+  return new Promise((resolve, reject) => {
+    const data = JSON.stringify({
+      model: opts.model || 'gpt-4o-mini',
+      messages,
+      temperature: opts.temperature ?? 0.7,
+      response_format: opts.json ? { type: 'json_object' } : undefined,
+    });
+    const options = {
+      hostname: 'api.openai.com',
+      path: '/v1/chat/completions',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Content-Length': Buffer.byteLength(data),
+      },
+    };
+    const req = https.request(options, (res) => {
+      let raw = '';
+      res.on('data', chunk => raw += chunk);
+      res.on('end', () => {
+        try { resolve(JSON.parse(raw)); }
+        catch(e) { reject(e); }
+      });
+    });
+    req.on('error', reject);
+    req.write(data);
+    req.end();
+  });
+}
+
+// Reuse the same RapidAPI Hotels4 two-stage flow as /api/hotels/location + /api/hotels/search,
+// but as an internal helper so the trip planner can pull real hotel names/prices.
+async function getRealHotelsForCity(cityName, budget, days) {
+  try {
+    const locUrl = `https://hotels4.p.rapidapi.com/locations/v3/search?q=${encodeURIComponent(cityName)}&locale=en_US&langid=1033&siteid=300000001`;
+    const locResp = await httpGet(locUrl, { 'X-RapidAPI-Key': RAPIDAPI_KEY, 'X-RapidAPI-Host': 'hotels4.p.rapidapi.com' });
+    const gaiaId = locResp.body?.sr?.[0]?.gaiaId;
+    if (!gaiaId) return [];
+
+    const checkin = new Date().toISOString().split('T')[0];
+    const checkoutDate = new Date(); checkoutDate.setDate(checkoutDate.getDate() + Math.max(1, days));
+    const checkout = checkoutDate.toISOString().split('T')[0];
+
+    const hotelUrl = `https://hotels4.p.rapidapi.com/properties/v2/list?currency=INR&eapid=1&locale=en_US&siteId=300000001`
+      + `&destination%5BregionId%5D=${gaiaId}&checkInDate=${checkin}&checkOutDate=${checkout}`
+      + `&rooms%5B0%5D%5BnumberOfAdults%5D=2&resultsStartingIndex=0&resultsSize=10&sort=PRICE_LOW_TO_HIGH`;
+    const hotelResp = await httpGet(hotelUrl, { 'X-RapidAPI-Key': RAPIDAPI_KEY, 'X-RapidAPI-Host': 'hotels4.p.rapidapi.com' });
+
+    const properties = hotelResp.body?.data?.propertySearch?.properties || [];
+    const perNightBudget = budget / Math.max(1, days) * 0.4; // ~40% of daily budget toward stay
+
+    return properties
+      .map(p => ({
+        name: p.name,
+        pricePerNight: p.price?.lead?.amount || null,
+        rating: p.reviews?.score || null,
+      }))
+      .filter(h => h.pricePerNight)
+      .sort((a, b) => Math.abs(a.pricePerNight - perNightBudget) - Math.abs(b.pricePerNight - perNightBudget))
+      .slice(0, 5);
+  } catch (e) {
+    console.error('getRealHotelsForCity error:', e.message);
+    return [];
+  }
+}
+
+app.post('/api/trip-planner', async (req, res) => {
+  const { source, destination, budget, days, interests } = req.body;
+
+  if (!destination || !budget || !days) {
+    return res.status(400).json({ error: 'destination, budget, and days are required' });
+  }
+  const numDays = Math.max(1, Math.min(30, parseInt(days)));
+  const numBudget = Math.max(500, parseInt(budget));
+  const interestList = Array.isArray(interests) ? interests : (interests ? [interests] : ['General sightseeing']);
+
+  // ── Ground the plan in real data ──
+  let destinationPlace = null;
+  try {
+    destinationPlace = await Place.findOne({ nameLower: destination.toLowerCase().trim() }).lean();
+  } catch (e) { /* Place collection may not exist yet — proceed without it */ }
+
+  const realHotels = await getRealHotelsForCity(destination, numBudget, numDays);
+
+  // ── Estimate transport cost using existing cab pricing logic, if source given ──
+  let transportEstimate = null;
+  if (source) {
+    try {
+      const origin = encodeURIComponent(source + ', India');
+      const dest = encodeURIComponent(destination + ', India');
+      let distanceKm = 300; // fallback default
+      if (GOOGLE_MAPS_KEY) {
+        const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origin}&destinations=${dest}&units=metric&key=${GOOGLE_MAPS_KEY}`;
+        const resp = await httpGet(url);
+        const element = resp.body?.rows?.[0]?.elements?.[0];
+        if (element?.status === 'OK') distanceKm = Math.round(element.distance.value / 1000);
+      }
+      const sedanFare = Math.max(399, Math.round(distanceKm * 15));
+      transportEstimate = { distanceKm, roundTripCabFare: sedanFare * 2 };
+    } catch (e) { /* skip if it fails */ }
+  }
+
+  if (!OPENAI_API_KEY) {
+    return res.json({
+      error: 'OPENAI_API_KEY not set — AI itinerary generation unavailable. Set it in Railway env vars.',
+      groundingData: { destinationPlace, realHotels, transportEstimate },
+    });
+  }
+
+  // ── Build grounded prompt ──
+  const groundingNotes = [];
+  if (destinationPlace) {
+    groundingNotes.push(`Destination coordinates: ${destinationPlace.latitude}, ${destinationPlace.longitude} (${destinationPlace.admin1 || ''})`);
+  }
+  if (realHotels.length) {
+    groundingNotes.push(`Real available hotels (use these, do not invent other hotel names):\n` +
+      realHotels.map(h => `- ${h.name}: ₹${h.pricePerNight}/night${h.rating ? `, rating ${h.rating}` : ''}`).join('\n'));
+  }
+  if (transportEstimate) {
+    groundingNotes.push(`Estimated round-trip cab fare from ${source} to ${destination}: ₹${transportEstimate.roundTripCabFare} (${transportEstimate.distanceKm} km one-way)`);
+  }
+
+  const systemPrompt = `You are GoJourney's AI trip planner for Indian travel. Generate a realistic, day-by-day itinerary.
+Use ONLY the real hotel names provided in the grounding data if given — never invent hotel names if real ones are supplied.
+Be specific with real, well-known places to visit in the destination. Keep costs realistic for India in INR.
+Respond ONLY with valid JSON in this exact structure, no markdown, no preamble:
+{
+  "destination": "string",
+  "days": number,
+  "totalEstimatedCost": number,
+  "budgetFit": "under budget" | "on budget" | "over budget",
+  "itinerary": [
+    { "day": 1, "title": "string", "activities": ["string", "string"], "estimatedCost": number }
+  ],
+  "hotelSuggestions": [ { "name": "string", "pricePerNight": number, "note": "string" } ],
+  "tips": ["string", "string"]
+}`;
+
+  const userPrompt = `Plan a ${numDays}-day trip to ${destination}${source ? ` from ${source}` : ''}.
+Total budget: ₹${numBudget}.
+Interests: ${interestList.join(', ')}.
+${groundingNotes.length ? '\nGrounding data:\n' + groundingNotes.join('\n\n') : ''}`;
+
+  try {
+    const completion = await openaiChat([
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ], { json: true });
+
+    const content = completion.choices?.[0]?.message?.content;
+    if (!content) {
+      return res.status(500).json({ error: 'AI did not return a valid response', raw: completion });
+    }
+
+    const plan = JSON.parse(content);
+    res.json({ plan, groundingData: { realHotels, transportEstimate }, source: 'openai' });
+  } catch (err) {
+    console.error('Trip planner error:', err.message);
+    res.status(500).json({ error: 'Failed to generate trip plan', detail: err.message });
+  }
+});
+
+// ───────────────────────────────────────────────────────
+//  ✅ GROUP / COLLEGE TRIP PLANNER (Student Travel Mode)
+//
+//  POST /api/group-trip
+//  Body: { destination, groupSize, budgetPerPerson, days, collegeName }
+//
+//  Builds a group-oriented plan: bulk transport (bus/tempo traveller),
+//  shared accommodation, and a per-person cost breakdown.
+// ───────────────────────────────────────────────────────
+app.post('/api/group-trip', async (req, res) => {
+  const { source, destination, groupSize, budgetPerPerson, days, collegeName } = req.body;
+
+  if (!destination || !groupSize || !budgetPerPerson || !days) {
+    return res.status(400).json({ error: 'destination, groupSize, budgetPerPerson, and days are required' });
+  }
+  const numGroup = Math.max(2, Math.min(60, parseInt(groupSize)));
+  const numDays = Math.max(1, Math.min(15, parseInt(days)));
+  const numBudgetPP = Math.max(300, parseInt(budgetPerPerson));
+  const totalBudget = numGroup * numBudgetPP;
+
+  // ── Real bus options for the route (your seeded BusRoute data) ──
+  let busOptions = [];
+  if (source) {
+    const fromNorm = normalizeCity(source);
+    const toNorm = normalizeCity(destination);
+    busOptions = await BusRoute.find({
+      from: { $regex: fromNorm, $options: 'i' },
+      to: { $regex: toNorm, $options: 'i' },
+      active: true,
+    }).limit(5).lean();
+  }
+
+  // ── Recommend tempo traveller for groups, using existing CAB_TYPES pricing ──
+  let groupTransport = null;
+  if (source) {
+    try {
+      let distanceKm = 300;
+      if (GOOGLE_MAPS_KEY) {
+        const origin = encodeURIComponent(source + ', India');
+        const dest = encodeURIComponent(destination + ', India');
+        const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origin}&destinations=${dest}&units=metric&key=${GOOGLE_MAPS_KEY}`;
+        const resp = await httpGet(url);
+        const element = resp.body?.rows?.[0]?.elements?.[0];
+        if (element?.status === 'OK') distanceKm = Math.round(element.distance.value / 1000);
+      }
+      const tempoCount = Math.ceil(numGroup / 12); // 12-seater tempo travellers
+      const tempoFareEach = Math.max(999, Math.round(distanceKm * 28));
+      groupTransport = {
+        distanceKm,
+        vehicleType: 'Tempo Traveller (12-seater)',
+        vehiclesNeeded: tempoCount,
+        totalFare: tempoFareEach * tempoCount * 2, // round trip
+        perPersonFare: Math.round((tempoFareEach * tempoCount * 2) / numGroup),
+      };
+    } catch (e) { /* skip */ }
+  }
+
+  // ── Real budget hotel options grouped for shared rooms ──
+  const realHotels = await getRealHotelsForCity(destination, numBudgetPP * numDays, numDays);
+  const sharedRoomHotels = realHotels.map(h => ({
+    ...h,
+    roomsNeeded: Math.ceil(numGroup / 3), // assume triple-sharing
+    costPerPersonPerNight: Math.round(h.pricePerNight / 3),
+  }));
+
+  const accommodationCostPP = sharedRoomHotels.length
+    ? sharedRoomHotels[0].costPerPersonPerNight * numDays
+    : Math.round(numBudgetPP * 0.4);
+
+  const transportCostPP = groupTransport ? groupTransport.perPersonFare : (busOptions[0]?.price || Math.round(numBudgetPP * 0.25));
+  const foodAndMiscPP = Math.max(0, numBudgetPP - accommodationCostPP - transportCostPP);
+
+  res.json({
+    destination,
+    source: source || null,
+    collegeName: collegeName || null,
+    groupSize: numGroup,
+    days: numDays,
+    budgetPerPerson: numBudgetPP,
+    totalGroupBudget: totalBudget,
+    transport: {
+      busOptions: busOptions.map(b => ({ name: b.name, type: b.type, price: b.price, departure: b.departure, arrival: b.arrival })),
+      groupVehicle: groupTransport,
+    },
+    accommodation: sharedRoomHotels,
+    costBreakdownPerPerson: {
+      accommodation: accommodationCostPP,
+      transport: transportCostPP,
+      foodAndMisc: foodAndMiscPP,
+      total: accommodationCostPP + transportCostPP + foodAndMiscPP,
+    },
+    note: numGroup >= 10 ? 'Groups of 10+ may qualify for bulk hotel/bus discounts — contact operators directly to negotiate.' : null,
+  });
+});
+
+// ───────────────────────────────────────────────────────
+//  ✅ AI CHAT ASSISTANT (general travel Q&A, multi-turn)
+//
+//  POST /api/chat
+//  Body: { messages: [{ role: 'user'|'assistant', content: '...' }, ...] }
+//
+//  Stateless on the server — frontend sends full conversation history each
+//  time (same pattern recommended for any Claude/OpenAI-powered chat UI).
+//  Scoped to travel topics only via system prompt; not connected to live
+//  booking/search data — for that, direct users to the relevant search tab.
+// ───────────────────────────────────────────────────────
+const CHAT_SYSTEM_PROMPT = `You are GoJourney AI Assistant, a friendly travel expert for travelers in India.
+You help with general travel questions: best times to visit places, what to pack, local customs,
+budget tips, safety advice, visa/ID requirements for domestic travel, food recommendations, weather,
+festivals, and trip ideas.
+You do NOT have access to live prices, real-time bus/hotel/cab availability, or the user's bookings.
+If asked about live prices, availability, or "book me a...", politely say you can't check live data
+or make bookings directly, and point them to the relevant GoJourney search tab (Hotels, Cabs, Buses,
+Tours, Shuttle, AI Trip Planner, or Group/College Trip) instead.
+Keep answers concise, warm, and practical — a few short paragraphs or a short list, not an essay.
+If a question is unrelated to travel, politely redirect to travel topics.`;
+
+app.post('/api/chat', async (req, res) => {
+  const { messages } = req.body;
+
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return res.status(400).json({ error: 'messages array is required' });
+  }
+  if (messages.length > 30) {
+    return res.status(400).json({ error: 'Conversation too long. Please start a new chat.' });
+  }
+  for (const m of messages) {
+    if (!m.role || !m.content || typeof m.content !== 'string' || m.content.length > 2000) {
+      return res.status(400).json({ error: 'Invalid message format or message too long' });
+    }
+  }
+
+  if (!OPENAI_API_KEY) {
+    return res.status(503).json({ error: 'AI Assistant unavailable — OPENAI_API_KEY not set.' });
+  }
+
+  try {
+    const completion = await openaiChat([
+      { role: 'system', content: CHAT_SYSTEM_PROMPT },
+      ...messages.map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content })),
+    ], { temperature: 0.6 });
+
+    const reply = completion.choices?.[0]?.message?.content;
+    if (!reply) {
+      return res.status(500).json({ error: 'AI did not return a response' });
+    }
+    res.json({ reply });
+  } catch (err) {
+    console.error('Chat error:', err.message);
+    res.status(500).json({ error: 'Failed to get AI response', detail: err.message });
+  }
+});
+
+// ───────────────────────────────────────────────────────
 //  AUTH ROUTES
 // ───────────────────────────────────────────────────────
 app.post('/api/auth/register', async (req, res) => {
@@ -773,6 +1175,7 @@ app.listen(PORT, () => {
   console.log(`🗺️  Real cabs: ${GOOGLE_MAPS_KEY ? '✅ Google Maps connected' : '⚠️  Set GOOGLE_MAPS_KEY for real distances'}`);
   console.log(`🚌 Real buses: ✅ MongoDB BusRoute collection`);
   console.log(`🚐 Real shuttles: ✅ MongoDB ShuttleRoute collection`);
+  console.log(`🤖 AI Trip Planner & Chat Assistant: ${OPENAI_API_KEY ? '✅ OpenAI connected' : '⚠️  Set OPENAI_API_KEY to enable'}`);
 });
 
 module.exports = app;
