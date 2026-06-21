@@ -645,7 +645,7 @@ app.get('/api/search/tours', (req, res) => {
 });
 
 // ───────────────────────────────────────────────────────
-//  ✅ AI TRIP PLANNER (OpenAI-powered)
+//  ✅ AI TRIP PLANNER (Gemini-powered)
 //
 //  POST /api/trip-planner
 //  Body: { source, destination, budget, days, interests: [...] }
@@ -654,25 +654,41 @@ app.get('/api/search/tours', (req, res) => {
 //    - Destination resolved via your Place (GeoNames) collection
 //    - Hotel suggestions pulled from RapidAPI Hotels4 (same flow as /api/hotels/search)
 //    - Cab fare estimate calculated with your existing CAB_TYPES pricing logic
-//  Set OPENAI_API_KEY in Railway env vars to enable.
+//  Set GEMINI_API_KEY in Railway env vars to enable.
 // ───────────────────────────────────────────────────────
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+const GEMINI_MODEL = 'gemini-2.0-flash';
 
+// Calls Google's Gemini API and returns a response SHAPED LIKE an OpenAI completion
+// ({ choices: [{ message: { content: '...' } }] }) so the rest of the code
+// (trip-planner + chat routes) doesn't need to change at all.
 async function openaiChat(messages, opts = {}) {
   return new Promise((resolve, reject) => {
-    const data = JSON.stringify({
-      model: opts.model || 'gpt-4o-mini',
-      messages,
-      temperature: opts.temperature ?? 0.7,
-      response_format: opts.json ? { type: 'json_object' } : undefined,
-    });
+    // Gemini has no "system" role — system messages go in a separate field.
+    const systemMsgs = messages.filter(m => m.role === 'system').map(m => m.content).join('\n\n');
+    const turnMsgs = messages.filter(m => m.role !== 'system');
+
+    const body = {
+      contents: turnMsgs.map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }],
+      })),
+      generationConfig: {
+        temperature: opts.temperature ?? 0.7,
+        ...(opts.json ? { responseMimeType: 'application/json' } : {}),
+      },
+    };
+    if (systemMsgs) {
+      body.systemInstruction = { parts: [{ text: systemMsgs }] };
+    }
+
+    const data = JSON.stringify(body);
     const options = {
-      hostname: 'api.openai.com',
-      path: '/v1/chat/completions',
+      hostname: 'generativelanguage.googleapis.com',
+      path: `/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'Content-Length': Buffer.byteLength(data),
       },
     };
@@ -680,7 +696,15 @@ async function openaiChat(messages, opts = {}) {
       let raw = '';
       res.on('data', chunk => raw += chunk);
       res.on('end', () => {
-        try { resolve(JSON.parse(raw)); }
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed.error) {
+            // Surface Gemini's error in the same shape openaiChat callers already check for
+            return resolve({ error: { message: parsed.error.message || 'Gemini API error' } });
+          }
+          const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+          resolve({ choices: [{ message: { content: text } }] });
+        }
         catch(e) { reject(e); }
       });
     });
@@ -762,9 +786,9 @@ app.post('/api/trip-planner', async (req, res) => {
     } catch (e) { /* skip if it fails */ }
   }
 
-  if (!OPENAI_API_KEY) {
+  if (!GEMINI_API_KEY) {
     return res.json({
-      error: 'OPENAI_API_KEY not set — AI itinerary generation unavailable. Set it in Railway env vars.',
+      error: 'GEMINI_API_KEY not set — AI itinerary generation unavailable. Set it in Railway env vars.',
       groundingData: { destinationPlace, realHotels, transportEstimate },
     });
   }
@@ -811,10 +835,10 @@ ${groundingNotes.length ? '\nGrounding data:\n' + groundingNotes.join('\n\n') : 
 
     const content = completion.choices?.[0]?.message?.content;
     if (!content) {
-      console.error('OpenAI returned no content. Full response:', JSON.stringify(completion));
+      console.error('Gemini returned no content. Full response:', JSON.stringify(completion));
       return res.status(500).json({
         error: completion.error?.message
-          ? `OpenAI error: ${completion.error.message}`
+          ? `Gemini error: ${completion.error.message}`
           : 'AI did not return a valid response — check Railway logs for details',
       });
     }
@@ -827,7 +851,7 @@ ${groundingNotes.length ? '\nGrounding data:\n' + groundingNotes.join('\n\n') : 
       console.error('Failed to parse AI JSON. Raw content:', content);
       return res.status(500).json({ error: 'AI returned malformed data. Please try again.' });
     }
-    res.json({ plan, groundingData: { realHotels, transportEstimate }, source: 'openai' });
+    res.json({ plan, groundingData: { realHotels, transportEstimate }, source: 'gemini' });
   } catch (err) {
     console.error('Trip planner error:', err.message);
     res.status(500).json({ error: 'Failed to generate trip plan', detail: err.message });
@@ -966,8 +990,8 @@ app.post('/api/chat', async (req, res) => {
     }
   }
 
-  if (!OPENAI_API_KEY) {
-    return res.status(503).json({ error: 'AI Assistant unavailable — OPENAI_API_KEY not set.' });
+  if (!GEMINI_API_KEY) {
+    return res.status(503).json({ error: 'AI Assistant unavailable — GEMINI_API_KEY not set.' });
   }
 
   try {
@@ -1187,7 +1211,7 @@ app.listen(PORT, () => {
   console.log(`🗺️  Real cabs: ${GOOGLE_MAPS_KEY ? '✅ Google Maps connected' : '⚠️  Set GOOGLE_MAPS_KEY for real distances'}`);
   console.log(`🚌 Real buses: ✅ MongoDB BusRoute collection`);
   console.log(`🚐 Real shuttles: ✅ MongoDB ShuttleRoute collection`);
-  console.log(`🤖 AI Trip Planner & Chat Assistant: ${OPENAI_API_KEY ? '✅ OpenAI connected' : '⚠️  Set OPENAI_API_KEY to enable'}`);
+  console.log(`🤖 AI Trip Planner & Chat Assistant: ${GEMINI_API_KEY ? '✅ Gemini connected' : '⚠️  Set GEMINI_API_KEY to enable'}`);
 });
 
 module.exports = app;
