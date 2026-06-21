@@ -811,10 +811,22 @@ ${groundingNotes.length ? '\nGrounding data:\n' + groundingNotes.join('\n\n') : 
 
     const content = completion.choices?.[0]?.message?.content;
     if (!content) {
-      return res.status(500).json({ error: 'AI did not return a valid response', raw: completion });
+      console.error('OpenAI returned no content. Full response:', JSON.stringify(completion));
+      return res.status(500).json({
+        error: completion.error?.message
+          ? `OpenAI error: ${completion.error.message}`
+          : 'AI did not return a valid response — check Railway logs for details',
+      });
     }
 
-    const plan = JSON.parse(content);
+    let plan;
+    try {
+      const cleaned = content.trim().replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```\s*$/, '');
+      plan = JSON.parse(cleaned);
+    } catch (parseErr) {
+      console.error('Failed to parse AI JSON. Raw content:', content);
+      return res.status(500).json({ error: 'AI returned malformed data. Please try again.' });
+    }
     res.json({ plan, groundingData: { realHotels, transportEstimate }, source: 'openai' });
   } catch (err) {
     console.error('Trip planner error:', err.message);

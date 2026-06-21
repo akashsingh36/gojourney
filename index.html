@@ -290,6 +290,19 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
   max-width: 900px;
   animation: fadeUp 0.8s 0.5s ease both;
 }
+.search-tabs-wrap {
+  position: relative;
+  border-radius: 20px 20px 0 0;
+  overflow: hidden;
+}
+.search-tabs-wrap::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 28px;
+  background: linear-gradient(to right, transparent, var(--off-white) 75%);
+  pointer-events: none;
+}
 .search-tabs {
   display: flex;
   background: var(--off-white);
@@ -1873,15 +1886,17 @@ h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
     <p class="hero-sub">From mountain getaways to beach escapes — book everything in one place</p>
     
     <div class="search-box">
-      <div class="search-tabs">
-        <button class="stab active" data-tab="hotels" onclick="switchTab('hotels', this)">🏨 Hotels</button>
-        <button class="stab" data-tab="cabs" onclick="switchTab('cabs', this)">🚖 Cabs</button>
-        <button class="stab" data-tab="buses" onclick="switchTab('buses', this)">🚌 Buses</button>
-        <button class="stab" data-tab="tours" onclick="switchTab('tours', this)">🗺️ Tours</button>
-        <button class="stab" data-tab="shuttle" onclick="switchTab('shuttle', this)">🚐 Shuttle</button>
-        <button class="stab" data-tab="aiplanner" onclick="switchTab('aiplanner', this)">🤖 AI Trip Planner</button>
-        <button class="stab" data-tab="grouptrip" onclick="switchTab('grouptrip', this)">🎓 Group/College Trip</button>
-        <button class="stab" data-tab="chat" onclick="switchTab('chat', this); initChatTabIfEmpty()">💬 Ask GoJourney AI</button>
+      <div class="search-tabs-wrap">
+        <div class="search-tabs">
+          <button class="stab active" data-tab="hotels" onclick="switchTab('hotels', this)">🏨 Hotels</button>
+          <button class="stab" data-tab="cabs" onclick="switchTab('cabs', this)">🚖 Cabs</button>
+          <button class="stab" data-tab="buses" onclick="switchTab('buses', this)">🚌 Buses</button>
+          <button class="stab" data-tab="tours" onclick="switchTab('tours', this)">🗺️ Tours</button>
+          <button class="stab" data-tab="shuttle" onclick="switchTab('shuttle', this)">🚐 Shuttle</button>
+          <button class="stab" data-tab="aiplanner" onclick="switchTab('aiplanner', this)">🤖 AI Trip Planner</button>
+          <button class="stab" data-tab="grouptrip" onclick="switchTab('grouptrip', this)">🎓 Group/College Trip</button>
+          <button class="stab" data-tab="chat" onclick="switchTab('chat', this); initChatTabIfEmpty()">💬 Ask GoJourney AI</button>
+        </div>
       </div>
       
       <div class="tab-content" id="tab-hotels">
